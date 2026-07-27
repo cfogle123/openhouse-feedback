@@ -26,6 +26,7 @@ function mapEntryRow(row) {
     buyerEmail: row.buyer_email,
     interested: row.interested,
     hasAgent: row.has_agent,
+    buyerAgentName: row.buyer_agent_name,
     feedback: row.feedback,
     agentName: row.agent_name,
   };
@@ -112,11 +113,12 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
     const agent = agentRows[0];
     if (!agent) return res.status(404).render('not-found');
-    const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, feedback } = req.body;
+    const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, buyerAgentName, feedback } = req.body;
+    const hasAgentBool = hasAgent === 'on';
     await db.query(
-      `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, feedback)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null]
+      `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, buyer_agent_name, feedback)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null]
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
@@ -131,11 +133,12 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
     const agent = agentRows[0];
     if (!agent) return res.status(404).render('not-found');
-    const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, feedback } = req.body;
+    const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, buyerAgentName, feedback } = req.body;
+    const hasAgentBool = hasAgent === 'on';
     await db.query(
       `UPDATE entries SET date = $1, address = $2, buyer_name = $3, buyer_phone = $4, buyer_email = $5,
-       interested = $6, has_agent = $7, feedback = $8 WHERE id = $9 AND agent_id = $10`,
-      [date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null, req.params.id, agent.id]
+       interested = $6, has_agent = $7, buyer_agent_name = $8, feedback = $9 WHERE id = $10 AND agent_id = $11`,
+      [date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null, req.params.id, agent.id]
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
@@ -238,7 +241,7 @@ app.get('/admin/export.csv', async (req, res, next) => {
        ORDER BY date DESC, entries.id DESC`
     );
     const entries = rows.map(mapEntryRow);
-    const header = 'Date,Address,Buyer Name,Buyer Phone,Buyer Email,Agent,Has Own Agent,Interested,Feedback/Notes\n';
+    const header = 'Date,Address,Buyer Name,Buyer Phone,Buyer Email,Agent,Has Own Agent,Buyer\'s Agent Name,Interested,Feedback/Notes\n';
     const csvRows = entries.map((e) => {
       const cells = [
         formatDateInput(e.date),
@@ -248,6 +251,7 @@ app.get('/admin/export.csv', async (req, res, next) => {
         e.buyerEmail || '',
         e.agentName,
         e.hasAgent ? 'Yes' : 'No',
+        e.buyerAgentName || '',
         e.interested,
         (e.feedback || '').replace(/\n/g, ' '),
       ];

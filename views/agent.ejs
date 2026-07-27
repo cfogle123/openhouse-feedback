@@ -56,8 +56,14 @@
         </div>
         <div class="form-row">
           <label class="checkbox-label">
-            <input type="checkbox" name="hasAgent" <%= editEntry && editEntry.hasAgent ? 'checked' : '' %>>
+            <input type="checkbox" name="hasAgent" id="hasAgent" <%= editEntry && editEntry.hasAgent ? 'checked' : '' %>>
             Buyer already has an agent
+          </label>
+        </div>
+        <div class="form-row" id="agentNameRow" style="<%= (editEntry && editEntry.hasAgent) ? '' : 'display:none;' %>">
+          <label class="full-width">
+            Buyer's Agent Name
+            <input type="text" name="buyerAgentName" id="buyerAgentName" placeholder="Agent's name" value="<%= editEntry ? (editEntry.buyerAgentName || '') : '' %>">
           </label>
         </div>
         <div class="form-row">
@@ -90,7 +96,7 @@
                     <th>Date</th>
                     <th>Buyer</th>
                     <th>Contact</th>
-                    <th>Has Agent</th>
+                    <th>Buyer's Agent</th>
                     <th>Interested</th>
                     <th>Feedback/Notes</th>
                     <th></th>
@@ -102,7 +108,7 @@
                       <td><%= new Date(e.date).toLocaleDateString() %></td>
                       <td><%= e.buyerName %></td>
                       <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
-                      <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                      <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
                       <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
                       <td class="feedback-cell"><%= e.feedback || '' %></td>
                       <td class="row-actions">
@@ -121,5 +127,18 @@
       <% } %>
     </section>
   </div>
+
+  <script>
+    (function () {
+      var cb = document.getElementById('hasAgent');
+      var row = document.getElementById('agentNameRow');
+      var nameInput = document.getElementById('buyerAgentName');
+      if (!cb || !row) return;
+      cb.addEventListener('change', function () {
+        row.style.display = cb.checked ? '' : 'none';
+        if (!cb.checked && nameInput) nameInput.value = '';
+      });
+    })();
+  </script>
 </body>
 </html>

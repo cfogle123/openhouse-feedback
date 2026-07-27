@@ -38,7 +38,7 @@
                   <th>Buyer</th>
                   <th>Contact</th>
                   <th>Agent</th>
-                  <th>Has Agent</th>
+                  <th>Buyer's Agent</th>
                   <th>Interested</th>
                   <th>Feedback/Notes</th>
                 </tr>
@@ -51,7 +51,7 @@
                     <td><%= e.buyerName %></td>
                     <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
                     <td><%= e.agentName %></td>
-                    <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                    <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
                     <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
                     <td class="feedback-cell"><%= e.feedback || '' %></td>
                   </tr>

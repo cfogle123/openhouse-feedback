@@ -25,3 +25,5 @@ CREATE TABLE IF NOT EXISTS houses (
   address TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
+
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS buyer_agent_name TEXT;

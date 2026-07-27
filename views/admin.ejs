@@ -32,7 +32,7 @@
                   <th>Date</th>
                   <th>Buyer</th>
                   <th>Agent</th>
-                  <th>Has Agent</th>
+                  <th>Buyer's Agent</th>
                   <th>Interested</th>
                   <th>Feedback/Notes</th>
                 </tr>
@@ -43,7 +43,7 @@
                     <td><%= new Date(e.date).toLocaleDateString() %></td>
                     <td><%= e.buyerName %></td>
                     <td><%= e.agentName %></td>
-                    <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                    <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
                     <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
                     <td class="feedback-cell"><%= e.feedback || '' %></td>
                   </tr>
