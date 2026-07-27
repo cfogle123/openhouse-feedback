@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= agent.name %> | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; All agents</a>
+      <h1><%= agent.name %>'s Open Houses</h1>
+      <p class="subtitle">Enter details within 1 hour of the open house ending. Keep more detailed notes in Follow Up Boss.</p>
+    </header>
+
+    <section class="card form-card">
+      <h2><%= editEntry ? 'Edit Entry' : 'Log New Entry' %></h2>
+      <form method="POST" action="<%= editEntry ? ('/agent/' + agent.slug + '/entries/' + editEntry.id) : ('/agent/' + agent.slug + '/entries') %>">
+        <div class="form-row">
+          <label>
+            Date
+            <input type="date" name="date" value="<%= editEntry ? editEntry.dateInput : today %>" required>
+          </label>
+          <label>
+            Address
+            <input type="text" name="address" list="house-options" placeholder="123 Main St" value="<%= editEntry ? editEntry.address : '' %>" required>
+            <datalist id="house-options">
+              <% houses.forEach(function(h) { %><option value="<%= h.address %>"><% }); %>
+            </datalist>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Buyer Name
+            <input type="text" name="buyerName" placeholder="Jane Doe" value="<%= editEntry ? editEntry.buyerName : '' %>" required>
+          </label>
+          <label>
+            Buyer Phone
+            <input type="tel" name="buyerPhone" placeholder="(555) 555-5555" value="<%= editEntry ? (editEntry.buyerPhone || '') : '' %>">
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Buyer Email
+            <input type="email" name="buyerEmail" placeholder="jane@email.com" value="<%= editEntry ? (editEntry.buyerEmail || '') : '' %>">
+          </label>
+          <label>
+            Interested?
+            <select name="interested">
+              <% interestOptions.forEach(function(opt) { %>
+                <option value="<%= opt %>" <%= editEntry && editEntry.interested === opt ? 'selected' : '' %>><%= opt %></option>
+              <% }); %>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" name="hasAgent" <%= editEntry && editEntry.hasAgent ? 'checked' : '' %>>
+            Buyer already has an agent
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="full-width">
+            Feedback / Notes
+            <textarea name="feedback" rows="3" placeholder="Brief description of feedback received"><%= editEntry ? (editEntry.feedback || '') : '' %></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary"><%= editEntry ? 'Save Changes' : 'Add Entry' %></button>
+          <% if (editEntry) { %>
+            <a class="btn-secondary" href="/agent/<%= agent.slug %>">Cancel</a>
+          <% } %>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Your Entries (<%= totalCount %>)</h2>
+      <% if (totalCount === 0) { %>
+        <p class="empty-state">No entries yet. Add your first one above.</p>
+      <% } else { %>
+        <% groups.forEach(function(group) { %>
+          <div class="house-group">
+            <h3 class="house-heading"><%= group.address %> <span class="house-count">(<%= group.entries.length %>)</span></h3>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Buyer</th>
+                    <th>Contact</th>
+                    <th>Has Agent</th>
+                    <th>Interested</th>
+                    <th>Feedback/Notes</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% group.entries.forEach(function(e) { %>
+                    <tr>
+                      <td><%= new Date(e.date).toLocaleDateString() %></td>
+                      <td><%= e.buyerName %></td>
+                      <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
+                      <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                      <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
+                      <td class="feedback-cell"><%= e.feedback || '' %></td>
+                      <td class="row-actions">
+                        <a href="/agent/<%= agent.slug %>/entries/<%= e.id %>/edit">Edit</a>
+                        <form method="POST" action="/agent/<%= agent.slug %>/entries/<%= e.id %>/delete" onsubmit="return confirm('Delete this entry?');">
+                          <button type="submit" class="link-btn">Delete</button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% }); %>
+      <% } %>
+    </section>
+  </div>
+</body>
+</html>

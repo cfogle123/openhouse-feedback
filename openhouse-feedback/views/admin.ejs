@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Entries | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; All agents</a>
+      <h1>All Open House Feedback</h1>
+      <p class="subtitle"><%= totalCount %> total entries across all agents, grouped by house.</p>
+      <div class="form-actions">
+        <a class="btn-secondary" href="/admin/export.csv">Export CSV</a>
+        <a class="btn-secondary" href="/admin/houses">Manage House Addresses</a>
+      </div>
+    </header>
+
+    <% if (totalCount === 0) { %>
+      <section class="card"><p class="empty-state">No entries yet.</p></section>
+    <% } else { %>
+      <% groups.forEach(function(group) { %>
+        <section class="card house-group">
+          <h3 class="house-heading"><%= group.address %> <span class="house-count">(<%= group.entries.length %>)</span></h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Buyer</th>
+                  <th>Agent</th>
+                  <th>Has Agent</th>
+                  <th>Interested</th>
+                  <th>Feedback/Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% group.entries.forEach(function(e) { %>
+                  <tr>
+                    <td><%= new Date(e.date).toLocaleDateString() %></td>
+                    <td><%= e.buyerName %></td>
+                    <td><%= e.agentName %></td>
+                    <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                    <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
+                    <td class="feedback-cell"><%= e.feedback || '' %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      <% }); %>
+    <% } %>
+  </div>
+</body>
+</html>
