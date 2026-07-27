@@ -19,3 +19,9 @@ CREATE TABLE IF NOT EXISTS entries (
   feedback TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS houses (
+  id SERIAL PRIMARY KEY,
+  address TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);

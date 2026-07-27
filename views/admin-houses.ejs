@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>House Addresses | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/admin">&larr; All entries</a>
+      <h1>House Addresses</h1>
+      <p class="subtitle">Add addresses here so they show up as suggestions on every agent's entry form. Addresses are also added automatically the first time someone uses them.</p>
+    </header>
+
+    <section class="card form-card">
+      <h2>Add an Address</h2>
+      <form method="POST" action="/admin/houses">
+        <div class="form-row">
+          <label class="full-width">
+            Address
+            <input type="text" name="address" placeholder="123 Main St" required>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Add Address</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Saved Addresses (<%= houses.length %>)</h2>
+      <% if (houses.length === 0) { %>
+        <p class="empty-state">No addresses saved yet.</p>
+      <% } else { %>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Address</th><th></th></tr>
+            </thead>
+            <tbody>
+              <% houses.forEach(function(h) { %>
+                <tr>
+                  <td><%= h.address %></td>
+                  <td class="row-actions">
+                    <form method="POST" action="/admin/houses/<%= h.id %>/delete" onsubmit="return confirm('Remove this address from the suggestion list? Existing entries keep their address.');">
+                      <button type="submit" class="link-btn">Remove</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</body>
+</html>

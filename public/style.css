@@ -240,3 +240,20 @@ th {
 .link-btn:hover { text-decoration: underline; }
 
 .empty-state { color: var(--muted); font-style: italic; }
+
+.house-group { margin-bottom: 28px; }
+.house-group:last-child { margin-bottom: 0; }
+
+.house-heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--brand);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border);
+}
+
+.house-count {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 13px;
+}

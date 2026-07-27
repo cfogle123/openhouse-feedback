@@ -31,6 +31,23 @@ function mapEntryRow(row) {
   };
 }
 
+// Groups an already date-sorted list of entries into address buckets,
+// preserving the order the addresses first appear in (i.e. most recent activity first).
+function groupByAddress(entries) {
+  const map = new Map();
+  for (const e of entries) {
+    const key = e.address && e.address.trim() ? e.address.trim() : '(No address)';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(e);
+  }
+  return Array.from(map.entries()).map(([address, items]) => ({ address, entries: items }));
+}
+
+async function getHouses() {
+  const { rows } = await db.query('SELECT * FROM houses ORDER BY address ASC');
+  return rows;
+}
+
 // Home: pick your name
 app.get('/', async (req, res, next) => {
   try {
@@ -39,7 +56,7 @@ app.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Agent page: form + their own entries
+// Agent page: form + their own entries, grouped by house
 app.get('/agent/:slug', async (req, res, next) => {
   try {
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
@@ -49,9 +66,13 @@ app.get('/agent/:slug', async (req, res, next) => {
       'SELECT * FROM entries WHERE agent_id = $1 ORDER BY date DESC, id DESC',
       [agent.id]
     );
+    const entries = rows.map(mapEntryRow);
+    const houses = await getHouses();
     res.render('agent', {
       agent,
-      entries: rows.map(mapEntryRow),
+      groups: groupByAddress(entries),
+      totalCount: entries.length,
+      houses,
       interestOptions: INTEREST_OPTIONS,
       today: formatDateInput(new Date()),
       editEntry: null,
@@ -70,11 +91,14 @@ app.get('/agent/:slug/entries/:id/edit', async (req, res, next) => {
       [agent.id]
     );
     const entries = rows.map(mapEntryRow);
+    const houses = await getHouses();
     const found = entries.find((e) => String(e.id) === req.params.id);
     const editEntry = found ? { ...found, dateInput: formatDateInput(found.date) } : null;
     res.render('agent', {
       agent,
-      entries,
+      groups: groupByAddress(entries),
+      totalCount: entries.length,
+      houses,
       interestOptions: INTEREST_OPTIONS,
       today: formatDateInput(new Date()),
       editEntry,
@@ -92,8 +116,12 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
     await db.query(
       `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, feedback)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [agent.id, date, address, buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null]
+      [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null]
     );
+    // If this address isn't in the saved house list yet, add it automatically so it's remembered next time.
+    if (address && address.trim()) {
+      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
+    }
     res.redirect(`/agent/${agent.slug}`);
   } catch (err) { next(err); }
 });
@@ -108,8 +136,11 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     await db.query(
       `UPDATE entries SET date = $1, address = $2, buyer_name = $3, buyer_phone = $4, buyer_email = $5,
        interested = $6, has_agent = $7, feedback = $8 WHERE id = $9 AND agent_id = $10`,
-      [date, address, buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null, req.params.id, agent.id]
+      [date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null, req.params.id, agent.id]
     );
+    if (address && address.trim()) {
+      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
+    }
     res.redirect(`/agent/${agent.slug}`);
   } catch (err) { next(err); }
 });
@@ -122,7 +153,7 @@ app.post('/agent/:slug/entries/:id/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Admin: all entries across all agents
+// Admin: all entries across all agents, grouped by house
 app.get('/admin', async (req, res, next) => {
   try {
     const { rows } = await db.query(
@@ -130,7 +161,33 @@ app.get('/admin', async (req, res, next) => {
        JOIN agents ON agents.id = entries.agent_id
        ORDER BY date DESC, entries.id DESC`
     );
-    res.render('admin', { entries: rows.map(mapEntryRow) });
+    const entries = rows.map(mapEntryRow);
+    res.render('admin', { groups: groupByAddress(entries), totalCount: entries.length });
+  } catch (err) { next(err); }
+});
+
+// Admin: manage the list of house addresses
+app.get('/admin/houses', async (req, res, next) => {
+  try {
+    const houses = await getHouses();
+    res.render('admin-houses', { houses });
+  } catch (err) { next(err); }
+});
+
+app.post('/admin/houses', async (req, res, next) => {
+  try {
+    const address = (req.body.address || '').trim();
+    if (address) {
+      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address]);
+    }
+    res.redirect('/admin/houses');
+  } catch (err) { next(err); }
+});
+
+app.post('/admin/houses/:id/delete', async (req, res, next) => {
+  try {
+    await db.query('DELETE FROM houses WHERE id = $1', [req.params.id]);
+    res.redirect('/admin/houses');
   } catch (err) { next(err); }
 });
 
