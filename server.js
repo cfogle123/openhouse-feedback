@@ -118,7 +118,6 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgent === 'on', feedback || null]
     );
-    // If this address isn't in the saved house list yet, add it automatically so it's remembered next time.
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
     }
@@ -166,7 +165,7 @@ app.get('/admin', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Admin: manage the list of house addresses
+// Admin: manage the list of house addresses (suggestions shown on the entry form)
 app.get('/admin/houses', async (req, res, next) => {
   try {
     const houses = await getHouses();
@@ -188,6 +187,45 @@ app.post('/admin/houses/:id/delete', async (req, res, next) => {
   try {
     await db.query('DELETE FROM houses WHERE id = $1', [req.params.id]);
     res.redirect('/admin/houses');
+  } catch (err) { next(err); }
+});
+
+// Browse responses grouped by house, with bulk-delete
+app.get('/houses', async (req, res, next) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT address, COUNT(*)::int AS count, MAX(date) AS last_date
+       FROM entries GROUP BY address ORDER BY last_date DESC`
+    );
+    res.render('houses', { houses: rows });
+  } catch (err) { next(err); }
+});
+
+app.get('/houses/:address', async (req, res, next) => {
+  try {
+    const address = decodeURIComponent(req.params.address);
+    const { rows } = await db.query(
+      `SELECT entries.*, agents.name AS agent_name FROM entries
+       JOIN agents ON agents.id = entries.agent_id
+       WHERE entries.address = $1
+       ORDER BY date DESC, entries.id DESC`,
+      [address]
+    );
+    res.render('house-detail', { address, entries: rows.map(mapEntryRow) });
+  } catch (err) { next(err); }
+});
+
+app.post('/houses/:address/delete', async (req, res, next) => {
+  try {
+    const address = decodeURIComponent(req.params.address);
+    let ids = req.body.entryIds || [];
+    if (!Array.isArray(ids)) ids = [ids];
+    ids = ids.filter(Boolean).map((id) => parseInt(id, 10)).filter((id) => !Number.isNaN(id));
+    if (ids.length > 0) {
+      const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
+      await db.query(`DELETE FROM entries WHERE address = $1 AND id IN (${placeholders})`, [address, ...ids]);
+    }
+    res.redirect(`/houses/${encodeURIComponent(address)}`);
   } catch (err) { next(err); }
 });
 

@@ -257,3 +257,40 @@ th {
   font-weight: 400;
   font-size: 13px;
 }
+
+.house-grid { margin-top: 0; }
+
+.house-card-address {
+  font-weight: 600;
+  text-align: center;
+  font-size: 14px;
+}
+
+.house-card-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-danger {
+  background: var(--no);
+  color: white;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-danger:disabled {
+  background: #e3b7b0;
+  cursor: not-allowed;
+}

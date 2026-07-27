@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= address %> | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/houses">&larr; All houses</a>
+      <h1><%= address %></h1>
+      <p class="subtitle"><%= entries.length %> response<%= entries.length === 1 ? '' : 's' %> from all agents.</p>
+    </header>
+
+    <section class="card">
+      <% if (entries.length === 0) { %>
+        <p class="empty-state">No responses for this house.</p>
+      <% } else { %>
+        <form method="POST" action="/houses/<%= encodeURIComponent(address) %>/delete" id="bulk-form">
+          <div class="bulk-bar">
+            <label class="checkbox-label">
+              <input type="checkbox" id="select-all">
+              Select all
+            </label>
+            <button type="submit" class="btn-danger" id="delete-selected-btn" disabled
+              onclick="return confirm('Delete the selected response(s)? This cannot be undone.');">
+              Delete Selected
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Date</th>
+                  <th>Buyer</th>
+                  <th>Contact</th>
+                  <th>Agent</th>
+                  <th>Has Agent</th>
+                  <th>Interested</th>
+                  <th>Feedback/Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% entries.forEach(function(e) { %>
+                  <tr>
+                    <td><input type="checkbox" class="row-check" name="entryIds" value="<%= e.id %>"></td>
+                    <td><%= new Date(e.date).toLocaleDateString() %></td>
+                    <td><%= e.buyerName %></td>
+                    <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
+                    <td><%= e.agentName %></td>
+                    <td><%= e.hasAgent ? 'Yes' : 'No' %></td>
+                    <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
+                    <td class="feedback-cell"><%= e.feedback || '' %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </form>
+      <% } %>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      var selectAll = document.getElementById('select-all');
+      var deleteBtn = document.getElementById('delete-selected-btn');
+      if (!selectAll) return;
+      var rowChecks = function () { return Array.prototype.slice.call(document.querySelectorAll('.row-check')); };
+      function refreshButton() {
+        var anyChecked = rowChecks().some(function (c) { return c.checked; });
+        deleteBtn.disabled = !anyChecked;
+      }
+      selectAll.addEventListener('change', function () {
+        rowChecks().forEach(function (c) { c.checked = selectAll.checked; });
+        refreshButton();
+      });
+      rowChecks().forEach(function (c) {
+        c.addEventListener('change', function () {
+          if (!c.checked) selectAll.checked = false;
+          refreshButton();
+        });
+      });
+      refreshButton();
+    })();
+  </script>
+</body>
+</html>

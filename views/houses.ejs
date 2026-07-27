@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse by House | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; All agents</a>
+      <h1>Responses by House</h1>
+      <p class="subtitle">Pick a house to see everyone's responses for it, and clear out old ones.</p>
+    </header>
+
+    <% if (houses.length === 0) { %>
+      <section class="card"><p class="empty-state">No entries yet.</p></section>
+    <% } else { %>
+      <div class="agent-grid house-grid">
+        <% houses.forEach(function(h) { %>
+          <a class="agent-card" href="/houses/<%= encodeURIComponent(h.address) %>">
+            <div class="house-card-address"><%= h.address %></div>
+            <div class="house-card-count"><%= h.count %> response<%= h.count === 1 ? '' : 's' %></div>
+          </a>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>
