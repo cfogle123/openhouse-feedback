@@ -11,7 +11,7 @@
     <header class="page-header">
       <a class="back-link" href="/agent/<%= agent.slug %>">&larr; <%= agent.name %>'s Open Houses</a>
       <h1><%= agent.name %>'s Availability</h1>
-      <p class="subtitle">Mark yourself available or unavailable for each remaining weekend through the end of the year.</p>
+      <p class="subtitle">Check off every day you can work an open house through the end of the year. Leave a day unchecked if you can't do it.</p>
     </header>
 
     <% if (saved) { %>
@@ -27,8 +27,7 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Available</th>
-                <th>Unavailable</th>
+                <th>I can work this day</th>
                 <th>Comment</th>
               </tr>
             </thead>
@@ -36,8 +35,7 @@
               <% days.forEach(function(day) { %>
                 <tr>
                   <td><%= day.label %></td>
-                  <td><input type="radio" name="status_<%= day.key %>" value="Available" <%= day.status === 'Available' ? 'checked' : '' %>></td>
-                  <td><input type="radio" name="status_<%= day.key %>" value="Unavailable" <%= day.status === 'Unavailable' ? 'checked' : '' %>></td>
+                  <td><input type="checkbox" name="available_<%= day.key %>" <%= day.status === 'Available' ? 'checked' : '' %>></td>
                   <td><input type="text" name="comment_<%= day.key %>" value="<%= day.comment %>" placeholder="Optional note" style="width: 100%;"></td>
                 </tr>
               <% }); %>

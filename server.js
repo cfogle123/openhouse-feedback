@@ -264,6 +264,14 @@ app.post('/houses/:address/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Availability: pick your name (linked from the home page)
+app.get('/availability', async (req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
+    res.render('availability-agents', { agents: rows });
+  } catch (err) { next(err); }
+});
+
 // Agent: view + save their own availability for remaining weekend dates
 app.get('/agent/:slug/availability', async (req, res, next) => {
   try {
@@ -299,14 +307,14 @@ app.post('/agent/:slug/availability', async (req, res, next) => {
     const dates = getRemainingWeekendDates();
     for (const d of dates) {
       const key = toDateKey(d);
-      const status = req.body[`status_${key}`];
+      const checked = req.body[`available_${key}`] === 'on';
       const comment = (req.body[`comment_${key}`] || '').trim();
-      if (!status && !comment) continue; // nothing submitted for this date, leave any existing value untouched
+      const status = checked ? 'Available' : 'Unavailable';
       await db.query(
         `INSERT INTO availability (agent_id, date, status, comment, updated_at)
          VALUES ($1, $2, $3, $4, now())
          ON CONFLICT (agent_id, date) DO UPDATE SET status = EXCLUDED.status, comment = EXCLUDED.comment, updated_at = now()`,
-        [agent.id, key, status || 'Unset', comment || null]
+        [agent.id, key, status, comment || null]
       );
     }
     res.redirect(`/agent/${agent.slug}/availability?saved=1`);
