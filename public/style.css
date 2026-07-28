@@ -160,6 +160,7 @@ body {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .btn-primary {

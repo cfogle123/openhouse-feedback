@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= agent.name %>'s Availability | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/agent/<%= agent.slug %>">&larr; <%= agent.name %>'s Open Houses</a>
+      <h1><%= agent.name %>'s Availability</h1>
+      <p class="subtitle">Mark yourself available or unavailable for each remaining weekend through the end of the year.</p>
+    </header>
+
+    <% if (saved) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1;">
+        <strong style="color: var(--yes);">Saved.</strong> Your availability has been updated.
+      </div>
+    <% } %>
+
+    <section class="card">
+      <form method="POST" action="/agent/<%= agent.slug %>/availability">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Available</th>
+                <th>Unavailable</th>
+                <th>Comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% days.forEach(function(day) { %>
+                <tr>
+                  <td><%= day.label %></td>
+                  <td><input type="radio" name="status_<%= day.key %>" value="Available" <%= day.status === 'Available' ? 'checked' : '' %>></td>
+                  <td><input type="radio" name="status_<%= day.key %>" value="Unavailable" <%= day.status === 'Unavailable' ? 'checked' : '' %>></td>
+                  <td><input type="text" name="comment_<%= day.key %>" value="<%= day.comment %>" placeholder="Optional note" style="width: 100%;"></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Save Availability</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</body>
+</html>

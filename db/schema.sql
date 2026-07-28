@@ -27,3 +27,18 @@ CREATE TABLE IF NOT EXISTS houses (
 );
 
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS buyer_agent_name TEXT;
+
+CREATE TABLE IF NOT EXISTS availability (
+  id SERIAL PRIMARY KEY,
+  agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Unset',
+  comment TEXT,
+  updated_at TIMESTAMP NOT NULL DEFAULT now(),
+  UNIQUE (agent_id, date)
+);
+
+CREATE TABLE IF NOT EXISTS availability_day_notes (
+  date DATE PRIMARY KEY,
+  assignment TEXT
+);

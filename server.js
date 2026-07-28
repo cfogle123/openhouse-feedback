@@ -32,8 +32,6 @@ function mapEntryRow(row) {
   };
 }
 
-// Groups an already date-sorted list of entries into address buckets,
-// preserving the order the addresses first appear in (i.e. most recent activity first).
 function groupByAddress(entries) {
   const map = new Map();
   for (const e of entries) {
@@ -42,6 +40,40 @@ function groupByAddress(entries) {
     map.get(key).push(e);
   }
   return Array.from(map.entries()).map(([address, items]) => ({ address, entries: items }));
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// All date values here are kept as UTC-midnight Date objects. This matters because
+// node-postgres returns DATE columns as UTC-midnight Date objects regardless of server
+// timezone, so using local getters (getDate/getMonth/etc.) would shift the day by one
+// whenever the server runs in a negative UTC-offset timezone. Using UTC getters
+// everywhere keeps the generated dates and the DB round-tripped dates consistent.
+function toDateKey(d) {
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+function formatDayLabel(d) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${days[d.getUTCDay()]}, ${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+
+// Every remaining Friday/Saturday/Sunday between today and Dec 31 of the current year.
+function getRemainingWeekendDates() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const end = new Date(Date.UTC(now.getFullYear(), 11, 31));
+  const dates = [];
+  let cursor = start;
+  while (cursor <= end) {
+    const day = cursor.getUTCDay();
+    if (day === 5 || day === 6 || day === 0) {
+      dates.push(new Date(cursor));
+    }
+    cursor = new Date(cursor.getTime() + 86400000);
+  }
+  return dates;
 }
 
 async function getHouses() {
@@ -229,6 +261,102 @@ app.post('/houses/:address/delete', async (req, res, next) => {
       await db.query(`DELETE FROM entries WHERE address = $1 AND id IN (${placeholders})`, [address, ...ids]);
     }
     res.redirect(`/houses/${encodeURIComponent(address)}`);
+  } catch (err) { next(err); }
+});
+
+// Agent: view + save their own availability for remaining weekend dates
+app.get('/agent/:slug/availability', async (req, res, next) => {
+  try {
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.status(404).render('not-found');
+
+    const dates = getRemainingWeekendDates();
+    const { rows } = await db.query('SELECT * FROM availability WHERE agent_id = $1', [agent.id]);
+    const existing = new Map(rows.map((r) => [toDateKey(new Date(r.date)), r]));
+
+    const days = dates.map((d) => {
+      const key = toDateKey(d);
+      const rec = existing.get(key);
+      return {
+        key,
+        label: formatDayLabel(d),
+        status: rec ? rec.status : null,
+        comment: rec ? (rec.comment || '') : '',
+      };
+    });
+
+    res.render('availability', { agent, days, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+app.post('/agent/:slug/availability', async (req, res, next) => {
+  try {
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.status(404).render('not-found');
+
+    const dates = getRemainingWeekendDates();
+    for (const d of dates) {
+      const key = toDateKey(d);
+      const status = req.body[`status_${key}`];
+      const comment = (req.body[`comment_${key}`] || '').trim();
+      if (!status && !comment) continue; // nothing submitted for this date, leave any existing value untouched
+      await db.query(
+        `INSERT INTO availability (agent_id, date, status, comment, updated_at)
+         VALUES ($1, $2, $3, $4, now())
+         ON CONFLICT (agent_id, date) DO UPDATE SET status = EXCLUDED.status, comment = EXCLUDED.comment, updated_at = now()`,
+        [agent.id, key, status || 'Unset', comment || null]
+      );
+    }
+    res.redirect(`/agent/${agent.slug}/availability?saved=1`);
+  } catch (err) { next(err); }
+});
+
+// Admin: grid of everyone's availability for remaining weekend dates
+app.get('/admin/availability', async (req, res, next) => {
+  try {
+    const agents = (await db.query('SELECT * FROM agents ORDER BY name ASC')).rows;
+    const dates = getRemainingWeekendDates();
+    const { rows: availRows } = await db.query('SELECT * FROM availability');
+    const { rows: noteRows } = await db.query('SELECT * FROM availability_day_notes');
+
+    const availMap = new Map(); // `${agentId}|${dateKey}` -> row
+    for (const r of availRows) {
+      availMap.set(`${r.agent_id}|${toDateKey(new Date(r.date))}`, r);
+    }
+    const noteMap = new Map(noteRows.map((r) => [toDateKey(new Date(r.date)), r.assignment || '']));
+
+    const days = dates.map((d) => {
+      const key = toDateKey(d);
+      return {
+        key,
+        label: formatDayLabel(d),
+        assignment: noteMap.get(key) || '',
+        cells: agents.map((a) => {
+          const rec = availMap.get(`${a.id}|${key}`);
+          return { agentName: a.name, status: rec ? rec.status : null, comment: rec ? (rec.comment || '') : '' };
+        }),
+      };
+    });
+
+    res.render('admin-availability', { agents, days, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+app.post('/admin/availability', async (req, res, next) => {
+  try {
+    const dates = getRemainingWeekendDates();
+    for (const d of dates) {
+      const key = toDateKey(d);
+      const assignment = (req.body[`assignment_${key}`] || '').trim();
+      await db.query(
+        `INSERT INTO availability_day_notes (date, assignment) VALUES ($1, $2)
+         ON CONFLICT (date) DO UPDATE SET assignment = EXCLUDED.assignment`,
+        [key, assignment || null]
+      );
+    }
+    res.redirect('/admin/availability?saved=1');
   } catch (err) { next(err); }
 });
 

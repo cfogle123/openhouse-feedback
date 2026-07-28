@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Availability | Open House Feedback</title>
+  <%- include('partials-head') %>
+  <style>
+    .avail-cell { white-space: nowrap; }
+    .avail-comment { display: block; font-size: 11px; color: var(--muted); white-space: normal; max-width: 140px; }
+    .assignment-input { width: 160px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/admin">&larr; All entries</a>
+      <h1>Open House Availability</h1>
+      <p class="subtitle">Everyone's availability for the remaining weekends this year. Fill in "Assignment" to note who's covering each date.</p>
+    </header>
+
+    <% if (saved) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1;">
+        <strong style="color: var(--yes);">Saved.</strong> Assignments updated.
+      </div>
+    <% } %>
+
+    <section class="card">
+      <form method="POST" action="/admin/availability">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <% agents.forEach(function(a) { %><th><%= a.name %></th><% }); %>
+                <th>Assignment / Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% days.forEach(function(day) { %>
+                <tr>
+                  <td><%= day.label %></td>
+                  <% day.cells.forEach(function(cell) { %>
+                    <td class="avail-cell">
+                      <% if (cell.status === 'Available') { %>
+                        <span class="badge badge-yes">Available</span>
+                      <% } else if (cell.status === 'Unavailable') { %>
+                        <span class="badge badge-no">Unavailable</span>
+                      <% } else { %>
+                        <span class="muted">&mdash;</span>
+                      <% } %>
+                      <% if (cell.comment) { %><span class="avail-comment"><%= cell.comment %></span><% } %>
+                    </td>
+                  <% }); %>
+                  <td>
+                    <input type="text" class="assignment-input" name="assignment_<%= day.key %>" value="<%= day.assignment %>" placeholder="e.g. Meredith">
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Save Assignments</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</body>
+</html>
