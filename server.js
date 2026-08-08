@@ -82,14 +82,19 @@ async function getHouses() {
 }
 
 // Home: pick your name
-app.get('/', async (req, res, next) => {
+app.get('/', (req, res) => {
+  res.render('home');
+});
+
+// Feedback: pick your name
+app.get('/feedback', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
-    res.render('home', { agents: rows });
+    res.render('feedback-agents', { agents: rows });
   } catch (err) { next(err); }
 });
 
-// Availability: pick your name (linked from the home page)
+// Availability: pick your name
 app.get('/availability', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');

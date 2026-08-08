@@ -3,35 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Open House Feedback | The List Realty</title>
+  <title>Open House | The List Realty</title>
   <%- include('partials-head') %>
 </head>
 <body>
   <%- include('partials-topbar') %>
   <div class="wrap">
     <header class="page-header">
-      <h1>Open House Feedback</h1>
-      <p class="subtitle">Select your name below to log a new open house, review past entries, or set your availability.</p>
+      <h1>Open House</h1>
+      <p class="subtitle">Choose what you'd like to do.</p>
     </header>
 
-    <h2 class="section-heading">Log Feedback</h2>
-    <div class="agent-grid">
-      <% agents.forEach(function(agent) { %>
-        <a class="agent-card" href="/agent/<%= agent.slug %>">
-          <div class="agent-initial"><%= agent.name.charAt(0) %></div>
-          <div class="agent-name"><%= agent.name %></div>
-        </a>
-      <% }); %>
-    </div>
-
-    <h2 class="section-heading">Set Availability</h2>
-    <div class="agent-grid">
-      <% agents.forEach(function(agent) { %>
-        <a class="agent-card agent-card-alt" href="/agent/<%= agent.slug %>/availability">
-          <div class="agent-initial agent-initial-alt"><%= agent.name.charAt(0) %></div>
-          <div class="agent-name"><%= agent.name %></div>
-        </a>
-      <% }); %>
+    <div class="option-grid">
+      <a class="option-card" href="/feedback">
+        <svg class="option-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 9h8M8 12.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div class="option-title">Open House Feedback</div>
+        <div class="option-desc">Log visitor details and feedback from an open house.</div>
+      </a>
+      <a class="option-card" href="/availability">
+        <svg class="option-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="4.5" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M3.5 9h17M8 2.5v4M16 2.5v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M7.5 13.5l2.3 2.3 4.7-4.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="option-title">Open House Availability</div>
+        <div class="option-desc">Check off the days you can work an open house.</div>
+      </a>
     </div>
 
     <footer class="footer">
