@@ -36,8 +36,9 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
 }
 
 .topbar {
-  background: var(--brand);
-  padding: 14px 20px;
+  background: #ffffff;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .topbar-inner {
@@ -51,28 +52,13 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
 .topbar a.topbar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
-  color: white;
 }
 
-.topbar-mark { flex-shrink: 0; }
-
-.topbar-wordmark {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: .01em;
-  line-height: 1;
-}
-
-.topbar-wordmark .light {
-  font-weight: 500;
-  opacity: .82;
-  letter-spacing: .12em;
-  font-size: 11px;
+.topbar-logo {
+  height: 40px;
+  width: auto;
   display: block;
-  margin-top: 2px;
 }
 
 .page-header h1 {
