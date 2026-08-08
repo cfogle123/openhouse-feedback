@@ -11,14 +11,24 @@
   <div class="wrap">
     <header class="page-header">
       <h1>Open House Feedback</h1>
-      <p class="subtitle">Select your name to log a new open house or review your past entries.</p>
-      <a class="btn-secondary" href="/availability">Set Your Availability</a>
+      <p class="subtitle">Select your name below to log a new open house, review past entries, or set your availability.</p>
     </header>
 
+    <h2 class="section-heading">Log Feedback</h2>
     <div class="agent-grid">
       <% agents.forEach(function(agent) { %>
         <a class="agent-card" href="/agent/<%= agent.slug %>">
           <div class="agent-initial"><%= agent.name.charAt(0) %></div>
+          <div class="agent-name"><%= agent.name %></div>
+        </a>
+      <% }); %>
+    </div>
+
+    <h2 class="section-heading">Set Availability</h2>
+    <div class="agent-grid">
+      <% agents.forEach(function(agent) { %>
+        <a class="agent-card agent-card-alt" href="/agent/<%= agent.slug %>/availability">
+          <div class="agent-initial agent-initial-alt"><%= agent.name.charAt(0) %></div>
           <div class="agent-name"><%= agent.name %></div>
         </a>
       <% }); %>

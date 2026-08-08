@@ -300,6 +300,22 @@ th {
 
 .empty-state { color: var(--muted); font-style: italic; }
 
+.section-heading {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--brand);
+  margin: 32px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.section-heading:first-of-type { margin-top: 24px; }
+
+.agent-card-alt { border-top-color: var(--brand); }
+.agent-card-alt:hover { border-top-color: var(--brand-light); }
+
+.agent-initial-alt { background: linear-gradient(155deg, var(--brand), #061c30); }
+
 .house-group { margin-bottom: 28px; }
 .house-group:last-child { margin-bottom: 0; }
 
