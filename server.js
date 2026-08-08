@@ -89,6 +89,14 @@ app.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Availability: pick your name (linked from the home page)
+app.get('/availability', async (req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
+    res.render('availability-agents', { agents: rows });
+  } catch (err) { next(err); }
+});
+
 // Agent page: form + their own entries, grouped by house
 app.get('/agent/:slug', async (req, res, next) => {
   try {
@@ -264,14 +272,6 @@ app.post('/houses/:address/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Availability: pick your name (linked from the home page)
-app.get('/availability', async (req, res, next) => {
-  try {
-    const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
-    res.render('availability-agents', { agents: rows });
-  } catch (err) { next(err); }
-});
-
 // Agent: view + save their own availability for remaining weekend dates
 app.get('/agent/:slug/availability', async (req, res, next) => {
   try {
@@ -329,7 +329,7 @@ app.get('/admin/availability', async (req, res, next) => {
     const { rows: availRows } = await db.query('SELECT * FROM availability');
     const { rows: noteRows } = await db.query('SELECT * FROM availability_day_notes');
 
-    const availMap = new Map(); // `${agentId}|${dateKey}` -> row
+    const availMap = new Map();
     for (const r of availRows) {
       availMap.set(`${r.agent_id}|${toDateKey(new Date(r.date))}`, r);
     }

@@ -1,11 +1,14 @@
+/* The List Realty brand: Navy #092A49, Blue #03598D, White, Montserrat Bold */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --brand: #1c3d5a;
-  --brand-light: #2f5d84;
-  --accent: #c9a227;
-  --bg: #f5f6f8;
+  --brand: #092A49;
+  --brand-light: #03598D;
+  --accent: #03598D;
+  --bg: #f2f4f7;
   --card-bg: #ffffff;
   --border: #e2e5ea;
-  --text: #23272f;
+  --text: #1c2530;
   --muted: #6b7280;
   --yes: #1a7f37;
   --no: #b42318;
@@ -16,15 +19,60 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+}
+
+h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 700;
 }
 
 .wrap {
   max-width: 1000px;
   margin: 0 auto;
   padding: 32px 20px 64px;
+}
+
+.topbar {
+  background: var(--brand);
+  padding: 14px 20px;
+}
+
+.topbar-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar a.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: white;
+}
+
+.topbar-mark { flex-shrink: 0; }
+
+.topbar-wordmark {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: .01em;
+  line-height: 1;
+}
+
+.topbar-wordmark .light {
+  font-weight: 500;
+  opacity: .82;
+  letter-spacing: .12em;
+  font-size: 11px;
+  display: block;
+  margin-top: 2px;
 }
 
 .page-header h1 {
@@ -102,9 +150,10 @@ body {
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 24px;
   margin-top: 20px;
+  box-shadow: 0 1px 3px rgba(9,42,73,0.06);
 }
 
 .card h2 {
