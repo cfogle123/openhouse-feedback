@@ -35,8 +35,10 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
   padding: 32px 20px 64px;
 }
 
-.topbar { background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-
+.topbar {
+  background: #ffffff;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .topbar-inner {
@@ -53,7 +55,11 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
   text-decoration: none;
 }
 
-.topbar-logo { height: 68px; width: auto; display: block; }
+.topbar-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
 
 .page-header h1 {
   margin: 8px 0 4px;

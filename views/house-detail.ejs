@@ -42,6 +42,7 @@
                   <th>Buyer's Agent</th>
                   <th>Interested</th>
                   <th>Feedback/Notes</th>
+                  <th>CRM</th>
                 </tr>
               </thead>
               <tbody>
@@ -55,6 +56,17 @@
                     <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
                     <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
                     <td class="feedback-cell"><%= e.feedback || '' %></td>
+                    <td>
+                      <% if (e.hasAgent) { %>
+                        <span class="muted">&mdash;</span>
+                      <% } else if (e.fubSyncedAt) { %>
+                        <span class="badge badge-yes" title="Added to Follow Up Boss">Synced</span>
+                      <% } else if (e.fubError) { %>
+                        <span class="badge badge-no" title="<%= e.fubError %>">Sync failed</span>
+                      <% } else { %>
+                        <span class="muted">Pending</span>
+                      <% } %>
+                    </td>
                   </tr>
                 <% }); %>
               </tbody>

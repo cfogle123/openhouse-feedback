@@ -20,7 +20,10 @@ function slugify(name) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-async function main() {
+// Applies schema.sql (safe to run repeatedly, everything uses IF NOT EXISTS)
+// and makes sure the 10 agents exist. Called automatically on every server
+// startup so new columns/tables show up on deploy with no manual step.
+async function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await db.query(schema);
 
@@ -31,11 +34,17 @@ async function main() {
       [a.name, a.email, slugify(a.name)]
     );
   }
-  console.log(`Schema ready. Seeded ${AGENTS.length} agents.`);
-  await db.pool.end();
+  console.log(`Database ready. ${AGENTS.length} agents seeded.`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+module.exports = { migrate };
+
+// Still runnable directly (`npm run seed`) for local setup or manual re-sync.
+if (require.main === module) {
+  migrate()
+    .then(() => db.pool.end())
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
+}

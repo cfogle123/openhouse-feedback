@@ -42,3 +42,6 @@ CREATE TABLE IF NOT EXISTS availability_day_notes (
   date DATE PRIMARY KEY,
   assignment TEXT
 );
+
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS fub_synced_at TIMESTAMP;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS fub_error TEXT;

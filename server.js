@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const db = require('./db');
+const { migrate } = require('./db/init');
+const { sendOpenHouseLead } = require('./lib/followUpBoss');
 
 const app = express();
 
@@ -29,6 +31,8 @@ function mapEntryRow(row) {
     buyerAgentName: row.buyer_agent_name,
     feedback: row.feedback,
     agentName: row.agent_name,
+    fubSyncedAt: row.fub_synced_at,
+    fubError: row.fub_error,
   };
 }
 
@@ -40,6 +44,17 @@ function groupByAddress(entries) {
     map.get(key).push(e);
   }
   return Array.from(map.entries()).map(([address, items]) => ({ address, entries: items }));
+}
+
+async function syncEntryToFollowUpBoss(entryId, entry) {
+  try {
+    const result = await sendOpenHouseLead(entry);
+    if (result && result.skipped) return; // Follow Up Boss not configured; leave status untouched.
+    await db.query('UPDATE entries SET fub_synced_at = now(), fub_error = NULL WHERE id = $1', [entryId]);
+  } catch (err) {
+    console.error('Follow Up Boss sync failed for entry', entryId, err.message);
+    await db.query('UPDATE entries SET fub_error = $2 WHERE id = $1', [entryId, String(err.message).slice(0, 500)]);
+  }
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -160,13 +175,24 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
     if (!agent) return res.status(404).render('not-found');
     const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, buyerAgentName, feedback } = req.body;
     const hasAgentBool = hasAgent === 'on';
-    await db.query(
+    const { rows: inserted } = await db.query(
       `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, buyer_agent_name, feedback)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
       [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null]
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
+    }
+    if (!hasAgentBool) {
+      await syncEntryToFollowUpBoss(inserted[0].id, {
+        agentName: agent.name,
+        buyerName,
+        buyerPhone,
+        buyerEmail,
+        address: (address || '').trim(),
+        feedback,
+        interested: interested || 'Maybe',
+      });
     }
     res.redirect(`/agent/${agent.slug}`);
   } catch (err) { next(err); }
@@ -180,6 +206,8 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     if (!agent) return res.status(404).render('not-found');
     const { date, address, buyerName, buyerPhone, buyerEmail, interested, hasAgent, buyerAgentName, feedback } = req.body;
     const hasAgentBool = hasAgent === 'on';
+    const { rows: existingRows } = await db.query('SELECT fub_synced_at FROM entries WHERE id = $1 AND agent_id = $2', [req.params.id, agent.id]);
+    const alreadySynced = existingRows[0] && existingRows[0].fub_synced_at;
     await db.query(
       `UPDATE entries SET date = $1, address = $2, buyer_name = $3, buyer_phone = $4, buyer_email = $5,
        interested = $6, has_agent = $7, buyer_agent_name = $8, feedback = $9 WHERE id = $10 AND agent_id = $11`,
@@ -187,6 +215,17 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
+    }
+    if (!hasAgentBool && !alreadySynced) {
+      await syncEntryToFollowUpBoss(req.params.id, {
+        agentName: agent.name,
+        buyerName,
+        buyerPhone,
+        buyerEmail,
+        address: (address || '').trim(),
+        feedback,
+        interested: interested || 'Maybe',
+      });
     }
     res.redirect(`/agent/${agent.slug}`);
   } catch (err) { next(err); }
@@ -411,7 +450,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Open House Feedback app running on port ${PORT}`));
+  migrate()
+    .catch((err) => {
+      console.error('Database migration failed on startup:', err);
+    })
+    .finally(() => {
+      app.listen(PORT, () => console.log(`Open House Feedback app running on port ${PORT}`));
+    });
 }
 
 module.exports = app;
