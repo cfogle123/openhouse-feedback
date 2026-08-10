@@ -184,7 +184,11 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
     }
     if (!hasAgentBool) {
-      await syncEntryToFollowUpBoss(inserted[0].id, {
+      // Fire-and-forget: don't make the agent wait on Follow Up Boss (which
+      // can take several seconds/retries) before their form submits. The
+      // entry is already saved; sync status shows up in the CRM column
+      // once it finishes.
+      syncEntryToFollowUpBoss(inserted[0].id, {
         agentName: agent.name,
         agentEmail: agent.email,
         buyerName,
@@ -218,7 +222,8 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
     }
     if (!hasAgentBool && !alreadySynced) {
-      await syncEntryToFollowUpBoss(req.params.id, {
+      // Fire-and-forget, same reasoning as the create route above.
+      syncEntryToFollowUpBoss(req.params.id, {
         agentName: agent.name,
         agentEmail: agent.email,
         buyerName,
