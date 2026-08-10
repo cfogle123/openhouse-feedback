@@ -186,6 +186,7 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
     if (!hasAgentBool) {
       await syncEntryToFollowUpBoss(inserted[0].id, {
         agentName: agent.name,
+        agentEmail: agent.email,
         buyerName,
         buyerPhone,
         buyerEmail,
@@ -219,6 +220,7 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     if (!hasAgentBool && !alreadySynced) {
       await syncEntryToFollowUpBoss(req.params.id, {
         agentName: agent.name,
+        agentEmail: agent.email,
         buyerName,
         buyerPhone,
         buyerEmail,
