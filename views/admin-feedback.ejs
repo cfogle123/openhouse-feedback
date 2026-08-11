@@ -51,6 +51,8 @@
                     <td>
                       <% if (e.hasAgent) { %>
                         <span class="muted">&mdash;</span>
+                      <% } else if (e.fubSyncedAt && e.fubError) { %>
+                        <span class="badge badge-maybe" title="<%= e.fubError %>">Synced (unassigned)</span>
                       <% } else if (e.fubSyncedAt) { %>
                         <span class="badge badge-yes" title="Added to Follow Up Boss">Synced</span>
                       <% } else if (e.fubError) { %>

@@ -50,7 +50,18 @@ async function syncEntryToFollowUpBoss(entryId, entry) {
   try {
     const result = await sendOpenHouseLead(entry);
     if (result && result.skipped) return; // Follow Up Boss not configured; leave status untouched.
-    await db.query('UPDATE entries SET fub_synced_at = now(), fub_error = NULL WHERE id = $1', [entryId]);
+    if (result.assigned === false && result.unassignedReason) {
+      // Tagged successfully, but couldn't assign to the right agent — still
+      // a success (fub_synced_at set), but flag the reason so it's visible
+      // in the CRM column instead of silently landing on Follow Up Boss's
+      // default assignee.
+      await db.query(
+        'UPDATE entries SET fub_synced_at = now(), fub_error = $2 WHERE id = $1',
+        [entryId, `Tagged, but not assigned: ${result.unassignedReason}`.slice(0, 500)]
+      );
+    } else {
+      await db.query('UPDATE entries SET fub_synced_at = now(), fub_error = NULL WHERE id = $1', [entryId]);
+    }
   } catch (err) {
     console.error('Follow Up Boss sync failed for entry', entryId, err.message);
     await db.query('UPDATE entries SET fub_error = $2 WHERE id = $1', [entryId, String(err.message).slice(0, 500)]);
