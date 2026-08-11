@@ -8,7 +8,7 @@ const AGENTS = [
   { name: 'Chris', email: 'chris@thelistrealty.com' },
   { name: 'Rose', email: 'rose@thelistrealty.com' },
   { name: 'Stacy', email: 'stacy@thelistrealty.com' },
-  { name: 'Sandy', email: 'sandraleblanc@thelistrealty.com' },
+  { name: 'Sandy', email: 'sandyleblanc@thelistrealty.com' },
   { name: 'Dale', email: 'dale@thelistrealty.com' },
   { name: 'Patrick', email: 'patrick@thelistrealty.com' },
   { name: 'Jason', email: 'jason@thelistrealty.com' },
@@ -30,7 +30,7 @@ async function migrate() {
   for (const a of AGENTS) {
     await db.query(
       `INSERT INTO agents (name, email, slug) VALUES ($1, $2, $3)
-       ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, slug = EXCLUDED.slug`,
+       ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email`,
       [a.name, a.email, slugify(a.name)]
     );
   }
