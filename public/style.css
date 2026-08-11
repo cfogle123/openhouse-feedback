@@ -197,6 +197,39 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
 }
 .checkbox-label input { width: auto; }
 
+.autocomplete-wrap { position: relative; }
+
+.suggestion-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(9, 42, 73, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 10px 10px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: var(--bg);
+}
+
 .form-actions {
   display: flex;
   gap: 12px;
