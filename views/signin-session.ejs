@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome | The List Realty Open House</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/signin/house/<%= agent.slug %>">&larr; Wrong house? Start over</a>
+      <h1>Welcome!</h1>
+      <p class="subtitle">You're signing in at <strong><%= house %></strong>, hosted by <%= agent.name %>. Please fill out your info below.</p>
+    </header>
+
+    <% if (submitted) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1; margin-bottom: 20px;">
+        <strong style="color: var(--yes);">Thanks!</strong> You're signed in. Enjoy the open house.
+      </div>
+    <% } %>
+
+    <section class="card form-card">
+      <form method="POST" action="/signin/session" id="visitorForm">
+        <input type="hidden" name="agentSlug" value="<%= agent.slug %>">
+        <input type="hidden" name="house" value="<%= house %>">
+
+        <div class="form-row">
+          <label class="full-width">
+            Your Name
+            <input type="text" name="visitorName" id="visitorName" placeholder="Jane Doe" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            Your Phone
+            <input type="tel" name="visitorPhone" placeholder="(555) 555-5555">
+          </label>
+          <label>
+            Your Email
+            <input type="email" name="visitorEmail" placeholder="jane@email.com">
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="full-width">
+            How interested are you in this home?
+            <select name="interested">
+              <% interestOptions.forEach(function(opt) { %>
+                <option value="<%= opt %>" <%= opt === 'Maybe' ? 'selected' : '' %>>
+                  <%= opt === 'Yes' ? 'Very interested' : (opt === 'No' ? 'Not interested' : 'Not sure yet') %>
+                </option>
+              <% }); %>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" name="hasAgent" id="hasAgent">
+            I'm already working with a real estate agent
+          </label>
+        </div>
+        <div class="form-row" id="agentNameRow" style="display:none;">
+          <label class="full-width">
+            Your Agent's Name
+            <input type="text" name="visitorAgentName" id="visitorAgentName" placeholder="Agent's name">
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="full-width">
+            Anything you'd like to share about this home?
+            <textarea name="comments" rows="3" placeholder="Optional comments"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Sign In</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      var cb = document.getElementById('hasAgent');
+      var row = document.getElementById('agentNameRow');
+      var nameInput = document.getElementById('visitorAgentName');
+      if (!cb || !row) return;
+      cb.addEventListener('change', function () {
+        row.style.display = cb.checked ? '' : 'none';
+        if (!cb.checked && nameInput) nameInput.value = '';
+      });
+    })();
+
+    // Keep the device ready for the next visitor: focus the name field on
+    // load so whoever's handed the tablet next can just start typing.
+    (function () {
+      var nameField = document.getElementById('visitorName');
+      if (nameField) nameField.focus();
+    })();
+  </script>
+</body>
+</html>

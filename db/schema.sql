@@ -52,3 +52,9 @@ CREATE TABLE IF NOT EXISTS open_house_schedule (
   date DATE,
   agent_id INTEGER REFERENCES agents(id) ON DELETE SET NULL
 );
+
+-- 'agent' = typed in by the hosting agent after the fact (the original
+-- feedback form). 'visitor' = the visitor signed themself in on a shared
+-- device at the open house (the /signin flow). Purely informational so
+-- admin views can show where a record came from.
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'agent';

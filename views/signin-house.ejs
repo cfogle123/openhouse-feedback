@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visitor Sign-In | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/signin">&larr; Not <%= agent.name %>?</a>
+      <h1>Which house are you holding open?</h1>
+      <p class="subtitle"><%= agent.name %>, confirm the address below to start visitor sign-in.</p>
+    </header>
+
+    <section class="card form-card">
+      <form method="GET" action="/signin/session">
+        <input type="hidden" name="agent" value="<%= agent.slug %>">
+        <div class="form-row">
+          <label class="full-width autocomplete-wrap">
+            Address
+            <input type="text" name="house" id="houseInput" placeholder="123 Main St" value="<%= suggestedHouse %>" autocomplete="off" required>
+            <ul id="houseSuggestions" class="suggestion-list" hidden></ul>
+          </label>
+        </div>
+        <% if (suggestedHouse) { %>
+          <p class="hint">Pulled from today's Open House Schedule &mdash; change it if that's not right.</p>
+        <% } %>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Start Visitor Sign-In</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="/js/address-autocomplete.js"></script>
+  <script>
+    initAddressAutocomplete(
+      document.getElementById('houseInput'),
+      document.getElementById('houseSuggestions'),
+      { addresses: <%- JSON.stringify(houses.map(function (h) { return h.address; })) %> }
+    );
+  </script>
+</body>
+</html>

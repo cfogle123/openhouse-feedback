@@ -43,7 +43,7 @@
                 <% group.entries.forEach(function(e) { %>
                   <tr>
                     <td><%= new Date(e.date).toLocaleDateString() %></td>
-                    <td><%= e.buyerName %></td>
+                    <td><%= e.buyerName %><% if (e.source === 'visitor') { %> <span class="tag-self" title="Visitor signed themselves in at the open house">Self sign-in</span><% } %></td>
                     <td><%= e.agentName %></td>
                     <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
                     <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>

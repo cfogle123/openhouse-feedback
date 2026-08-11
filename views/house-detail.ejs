@@ -50,7 +50,7 @@
                   <tr>
                     <td><input type="checkbox" class="row-check" name="entryIds" value="<%= e.id %>"></td>
                     <td><%= new Date(e.date).toLocaleDateString() %></td>
-                    <td><%= e.buyerName %></td>
+                    <td><%= e.buyerName %><% if (e.source === 'visitor') { %> <span class="tag-self" title="Visitor signed themselves in at the open house">Self sign-in</span><% } %></td>
                     <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
                     <td><%= e.agentName %></td>
                     <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>

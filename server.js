@@ -30,6 +30,7 @@ function mapEntryRow(row) {
     hasAgent: row.has_agent,
     buyerAgentName: row.buyer_agent_name,
     feedback: row.feedback,
+    source: row.source,
     agentName: row.agent_name,
     fubSyncedAt: row.fub_synced_at,
     fubError: row.fub_error,
@@ -107,6 +108,20 @@ async function getHouses() {
   return rows;
 }
 
+// Agent id -> house address for whatever's scheduled today, used to
+// auto-suggest the right house on the visitor sign-in start screen so the
+// agent usually doesn't have to pick it manually.
+async function getTodaysScheduleByAgent() {
+  const today = formatDateInput(new Date());
+  const { rows } = await db.query(
+    `SELECT agent_id, house_address FROM open_house_schedule WHERE date = $1 AND agent_id IS NOT NULL AND house_address IS NOT NULL AND house_address != ''`,
+    [today]
+  );
+  const map = {};
+  for (const r of rows) map[r.agent_id] = r.house_address;
+  return map;
+}
+
 // Home: pick your name
 app.get('/', (req, res) => {
   res.render('home');
@@ -125,6 +140,82 @@ app.get('/availability', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
     res.render('availability-agents', { agents: rows });
+  } catch (err) { next(err); }
+});
+
+// Visitor sign-in, step 1: pick your name.
+app.get('/signin', async (req, res, next) => {
+  try {
+    const { rows: agents } = await db.query('SELECT * FROM agents ORDER BY name ASC');
+    res.render('signin-agents', { agents });
+  } catch (err) { next(err); }
+});
+
+// Visitor sign-in, step 2: pick (or confirm) which house you're holding
+// open. Pre-filled from today's Open House Schedule for this agent, if set.
+app.get('/signin/house/:slug', async (req, res, next) => {
+  try {
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.redirect('/signin');
+    const houses = await getHouses();
+    const scheduleByAgent = await getTodaysScheduleByAgent();
+    res.render('signin-house', { agent, houses, suggestedHouse: scheduleByAgent[agent.id] || '' });
+  } catch (err) { next(err); }
+});
+
+// Visitor sign-in: the repeating kiosk-style form. Address comes from the
+// query string (set on the start screen) and is shown read-only here so a
+// whole run of visitors at the same open house doesn't have to re-pick it.
+app.get('/signin/session', async (req, res, next) => {
+  try {
+    const { agent: slug, house, submitted } = req.query;
+    if (!slug || !house) return res.redirect('/signin');
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.redirect('/signin');
+    res.render('signin-session', {
+      agent,
+      house,
+      interestOptions: INTEREST_OPTIONS,
+      submitted: submitted === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+// Visitor sign-in: create the entry. Reuses the same entries table and the
+// same Follow Up Boss sync path as the agent-entered feedback form, just
+// tagged source='visitor' so it's clear where it came from.
+app.post('/signin/session', async (req, res, next) => {
+  try {
+    const { agentSlug, house, visitorName, visitorPhone, visitorEmail, interested, hasAgent, visitorAgentName, comments } = req.body;
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [agentSlug]);
+    const agent = agentRows[0];
+    if (!agent) return res.redirect('/signin');
+    const hasAgentBool = hasAgent === 'on';
+    const address = (house || '').trim();
+    const date = formatDateInput(new Date());
+    const { rows: inserted } = await db.query(
+      `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, buyer_agent_name, feedback, source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'visitor') RETURNING id`,
+      [agent.id, date, address, visitorName, visitorPhone || null, visitorEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((visitorAgentName || '').trim() || null) : null, comments || null]
+    );
+    if (address) {
+      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address]);
+    }
+    if (!hasAgentBool) {
+      syncEntryToFollowUpBoss(inserted[0].id, {
+        agentName: agent.name,
+        agentEmail: agent.email,
+        buyerName: visitorName,
+        buyerPhone: visitorPhone,
+        buyerEmail: visitorEmail,
+        address,
+        feedback: comments,
+        interested: interested || 'Maybe',
+      });
+    }
+    res.redirect(`/signin/session?agent=${encodeURIComponent(agent.slug)}&house=${encodeURIComponent(address)}&submitted=1`);
   } catch (err) { next(err); }
 });
 

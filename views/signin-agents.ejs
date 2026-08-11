@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visitor Sign-In | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; Home</a>
+      <h1>Visitor Sign-In</h1>
+      <p class="subtitle">Select your name to start sign-in for your open house, then hand the device to visitors.</p>
+    </header>
+
+    <div class="agent-grid">
+      <% agents.forEach(function(agent) { %>
+        <a class="agent-card" href="/signin/house/<%= agent.slug %>">
+          <div class="agent-initial"><%= agent.name.charAt(0) %></div>
+          <div class="agent-name"><%= agent.name %></div>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>
