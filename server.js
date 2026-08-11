@@ -246,8 +246,18 @@ app.post('/agent/:slug/entries/:id/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Admin: landing page with 2 options (Open House Feedback / Open House Schedule)
+app.get('/admin', (req, res) => {
+  res.render('admin-home');
+});
+
+// Admin: hub for scheduling-related pages (schedule + house addresses)
+app.get('/admin/scheduling', (req, res) => {
+  res.render('admin-scheduling');
+});
+
 // Admin: all entries across all agents, grouped by house
-app.get('/admin', async (req, res, next) => {
+app.get('/admin/feedback', async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT entries.*, agents.name AS agent_name FROM entries
@@ -255,7 +265,7 @@ app.get('/admin', async (req, res, next) => {
        ORDER BY date DESC, entries.id DESC`
     );
     const entries = rows.map(mapEntryRow);
-    res.render('admin', { groups: groupByAddress(entries), totalCount: entries.length });
+    res.render('admin-feedback', { groups: groupByAddress(entries), totalCount: entries.length });
   } catch (err) { next(err); }
 });
 

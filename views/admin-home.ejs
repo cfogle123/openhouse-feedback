@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; Home</a>
+      <h1>Admin</h1>
+      <p class="subtitle">Choose what you'd like to do.</p>
+    </header>
+
+    <div class="option-grid">
+      <a class="option-card" href="/admin/feedback">
+        <svg class="option-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8 9h8M8 12.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div class="option-title">Open House Feedback</div>
+        <div class="option-desc">Browse entries, export CSV, and manage availability.</div>
+      </a>
+      <a class="option-card" href="/admin/scheduling">
+        <svg class="option-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="4.5" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M3.5 9h17M8 2.5v4M16 2.5v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M7 13h10M7 16.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div class="option-title">Open House Schedule</div>
+        <div class="option-desc">Schedule houses to agents and manage addresses.</div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
