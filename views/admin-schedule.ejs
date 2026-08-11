@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open House Schedule | Open House Feedback</title>
+  <%- include('partials-head') %>
+  <style>
+    .schedule-row { display: grid; grid-template-columns: 1fr 160px 1fr; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .schedule-row:last-child { border-bottom: none; }
+    .schedule-row select, .schedule-row input { width: 100%; }
+    .schedule-slot-label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/admin">&larr; All entries</a>
+      <h1>Open House Schedule</h1>
+      <p class="subtitle">Pick a house, the date it's open, and who's covering it. Up to 10 at a time.</p>
+    </header>
+
+    <% if (saved) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1;">
+        <strong style="color: var(--yes);">Saved.</strong> Schedule updated.
+      </div>
+    <% } %>
+
+    <% if (houses.length === 0) { %>
+      <section class="card">
+        <p class="empty-state">No house addresses saved yet. <a href="/admin/houses">Add some addresses</a> first, then come back here to schedule them.</p>
+      </section>
+    <% } else { %>
+      <section class="card">
+        <form method="POST" action="/admin/schedule">
+          <% slots.forEach(function(s) { %>
+            <div class="schedule-row">
+              <div>
+                <div class="schedule-slot-label">House</div>
+                <select name="house_<%= s.slot %>">
+                  <option value="">&mdash; Select a house &mdash;</option>
+                  <% houses.forEach(function(h) { %>
+                    <option value="<%= h.address %>" <%= s.houseAddress === h.address ? 'selected' : '' %>><%= h.address %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div>
+                <div class="schedule-slot-label">Date</div>
+                <input type="date" name="date_<%= s.slot %>" value="<%= s.date %>">
+              </div>
+              <div>
+                <div class="schedule-slot-label">Agent</div>
+                <select name="agent_<%= s.slot %>">
+                  <option value="">&mdash; Select an agent &mdash;</option>
+                  <% agents.forEach(function(a) { %>
+                    <option value="<%= a.id %>" <%= String(s.agentId) === String(a.id) ? 'selected' : '' %>><%= a.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+          <% }); %>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Schedule</button>
+          </div>
+        </form>
+      </section>
+    <% } %>
+  </div>
+</body>
+</html>

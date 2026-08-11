@@ -45,3 +45,10 @@ CREATE TABLE IF NOT EXISTS availability_day_notes (
 
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS fub_synced_at TIMESTAMP;
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS fub_error TEXT;
+
+CREATE TABLE IF NOT EXISTS open_house_schedule (
+  slot INTEGER PRIMARY KEY,
+  house_address TEXT,
+  date DATE,
+  agent_id INTEGER REFERENCES agents(id) ON DELETE SET NULL
+);

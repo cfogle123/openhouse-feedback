@@ -419,6 +419,45 @@ app.post('/admin/availability', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Admin: Open House Schedule (10 fixed slots: house + date + assigned agent)
+app.get('/admin/schedule', async (req, res, next) => {
+  try {
+    const houses = await getHouses();
+    const agents = (await db.query('SELECT * FROM agents ORDER BY name ASC')).rows;
+    const { rows } = await db.query('SELECT * FROM open_house_schedule ORDER BY slot ASC');
+    const bySlot = new Map(rows.map((r) => [r.slot, r]));
+    const slots = [];
+    for (let i = 1; i <= 10; i++) {
+      const rec = bySlot.get(i);
+      slots.push({
+        slot: i,
+        houseAddress: rec ? rec.house_address || '' : '',
+        date: rec && rec.date ? formatDateInput(rec.date) : '',
+        agentId: rec && rec.agent_id ? rec.agent_id : '',
+      });
+    }
+    res.render('admin-schedule', { houses, agents, slots, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+app.post('/admin/schedule', async (req, res, next) => {
+  try {
+    for (let i = 1; i <= 10; i++) {
+      const houseAddress = (req.body[`house_${i}`] || '').trim();
+      const date = req.body[`date_${i}`] || null;
+      const agentIdRaw = req.body[`agent_${i}`];
+      const agentId = agentIdRaw ? parseInt(agentIdRaw, 10) : null;
+      await db.query(
+        `INSERT INTO open_house_schedule (slot, house_address, date, agent_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (slot) DO UPDATE SET house_address = EXCLUDED.house_address, date = EXCLUDED.date, agent_id = EXCLUDED.agent_id`,
+        [i, houseAddress || null, date || null, agentId]
+      );
+    }
+    res.redirect('/admin/schedule?saved=1');
+  } catch (err) { next(err); }
+});
+
 // CSV export
 app.get('/admin/export.csv', async (req, res, next) => {
   try {
