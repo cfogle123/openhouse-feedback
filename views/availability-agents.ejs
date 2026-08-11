@@ -18,7 +18,7 @@
     <div class="agent-grid">
       <% agents.forEach(function(agent) { %>
         <a class="agent-card" href="/agent/<%= agent.slug %>/availability">
-          <div class="agent-initial"><%= agent.name.charAt(0) %></div>
+          <%- include('partials-agent-avatar', { agent: agent }) %>
           <div class="agent-name"><%= agent.name %></div>
         </a>
       <% }); %>

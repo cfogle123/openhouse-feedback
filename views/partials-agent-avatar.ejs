@@ -1,0 +1,5 @@
+<% if (agent.photoUrl) { %>
+  <img class="agent-photo" src="<%= agent.photoUrl %>" alt="<%= agent.name %>">
+<% } else { %>
+  <div class="agent-initial"><%= agent.name.charAt(0) %></div>
+<% } %>

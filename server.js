@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
@@ -108,6 +109,40 @@ async function getHouses() {
   return rows;
 }
 
+// Agent headshots are plain static files dropped into public/headshots/,
+// named after the agent's slug (e.g. sandy.jpg). No upload UI and nothing in
+// the database -- just a file on disk, same pattern as logo.png. If none of
+// the supported extensions exist for an agent, photoUrl is null and the
+// templates fall back to showing their initial in a circle, so this is safe
+// to ship before any photos have been added.
+const HEADSHOT_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+function getAgentPhotoUrl(slug) {
+  for (const ext of HEADSHOT_EXTENSIONS) {
+    const filePath = path.join(__dirname, 'public', 'headshots', `${slug}.${ext}`);
+    if (fs.existsSync(filePath)) return `/headshots/${slug}.${ext}`;
+  }
+  return null;
+}
+function withPhotoUrls(agents) {
+  return agents.map((a) => ({ ...a, photoUrl: getAgentPhotoUrl(a.slug) }));
+}
+
+// House photos work the same way as agent headshots: a plain static file in
+// public/house-photos/, named after a slugified version of the address
+// (since houses are just free-text addresses, not a fixed slug column).
+function slugifyAddress(address) {
+  return String(address || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+function getHousePhotoUrl(address) {
+  const slug = slugifyAddress(address);
+  if (!slug) return null;
+  for (const ext of HEADSHOT_EXTENSIONS) {
+    const filePath = path.join(__dirname, 'public', 'house-photos', `${slug}.${ext}`);
+    if (fs.existsSync(filePath)) return `/house-photos/${slug}.${ext}`;
+  }
+  return null;
+}
+
 // Agent id -> house address for whatever's scheduled today, used to
 // auto-suggest the right house on the visitor sign-in start screen so the
 // agent usually doesn't have to pick it manually.
@@ -131,7 +166,7 @@ app.get('/', (req, res) => {
 app.get('/feedback', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
-    res.render('feedback-agents', { agents: rows });
+    res.render('feedback-agents', { agents: withPhotoUrls(rows) });
   } catch (err) { next(err); }
 });
 
@@ -139,7 +174,7 @@ app.get('/feedback', async (req, res, next) => {
 app.get('/availability', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT * FROM agents ORDER BY name ASC');
-    res.render('availability-agents', { agents: rows });
+    res.render('availability-agents', { agents: withPhotoUrls(rows) });
   } catch (err) { next(err); }
 });
 
@@ -147,7 +182,7 @@ app.get('/availability', async (req, res, next) => {
 app.get('/signin', async (req, res, next) => {
   try {
     const { rows: agents } = await db.query('SELECT * FROM agents ORDER BY name ASC');
-    res.render('signin-agents', { agents });
+    res.render('signin-agents', { agents: withPhotoUrls(agents) });
   } catch (err) { next(err); }
 });
 
@@ -177,6 +212,7 @@ app.get('/signin/session', async (req, res, next) => {
     res.render('signin-session', {
       agent,
       house,
+      housePhotoUrl: getHousePhotoUrl(house),
       interestOptions: INTEREST_OPTIONS,
       submitted: submitted === '1',
     });
