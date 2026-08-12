@@ -5,7 +5,7 @@ const fs = require('fs');
 const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
-const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, isSlackConfigured } = require('./lib/notifications');
+const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, isSlackBotConfigured } = require('./lib/notifications');
 const { runDueReminders } = require('./lib/reminders');
 
 const app = express();
@@ -313,7 +313,7 @@ app.get('/update/:slug', async (req, res, next) => {
       submitted: req.query.submitted === '1',
       lastUpdate,
       emailConfigured: isEmailConfigured(),
-      slackConfigured: isSlackConfigured(),
+      slackConfigured: isSlackBotConfigured(),
     });
   } catch (err) { next(err); }
 });

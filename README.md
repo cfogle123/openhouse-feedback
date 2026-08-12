@@ -31,41 +31,43 @@ Leave `FUB_API_KEY` unset to keep this feature off — everything else works the
 
 Each entry's sync status ("Synced" / "Sync failed" / "Pending") shows in the **CRM** column on the All Entries admin page and the Browse-by-house page, for visitors without their own agent.
 
+## Slack setup (shared by both features below)
+
+Both the Open House Update notification and the open-house reminders use a Slack **bot token** to send real 1:1 direct messages -- not an Incoming Webhook, since a webhook can only post into one fixed channel and has no way to message an arbitrary person.
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch** (skip this step if you already made an app previously).
+2. Name it, pick your workspace.
+3. In the left sidebar, click **OAuth & Permissions**.
+4. Scroll to **Bot Token Scopes** → **Add an OAuth Scope** → add both `chat:write` and `users:read.email`.
+5. Scroll up, click **Install to Workspace** (or **Reinstall to Workspace** if you've installed it before) → **Allow**.
+6. Copy the **Bot User OAuth Token** near the top of that page (starts with `xoxb-`).
+7. Add it as `SLACK_BOT_TOKEN`.
+
+Every agent (and Chris/Meredith) needs to be a member of the Slack workspace under the same email address that's in this app, since that's how a message gets matched to the right person.
+
 ## Open House Update notifications (optional)
 
-The **Open House Update** box on the home page lets an agent recap an open house (house, visitor count, how many are interested in making an offer) and send it straight to Chris and Meredith by email and/or Slack.
+The **Open House Update** box on the home page lets an agent recap an open house (house, visitor count, how many are interested in making an offer) and send it straight to Chris and Meredith by email and a direct Slack message to each of them.
 
 To turn on email, add:
 
 - `RESEND_API_KEY` — an API key from [resend.com](https://resend.com) (free tier is fine). Sign up, verify a sending domain (or just use the sandbox address while testing), then create an API key under **API Keys**.
 - `RESEND_FROM_EMAIL` — optional, defaults to Resend's sandbox address `onboarding@resend.dev`. Set this to an address on your verified domain once you've set one up in Resend.
-- `OPEN_HOUSE_UPDATE_EMAILS` — optional, defaults to `chris@thelistrealty.com,meredith@thelistrealty.com`. Comma-separated list of who receives it.
+- `OPEN_HOUSE_UPDATE_EMAILS` — optional, defaults to `chris@thelistrealty.com,meredith@thelistrealty.com`. Comma-separated list of who receives it (used for both email and the Slack DMs).
 
-To turn on Slack, add:
+Slack uses the same `SLACK_BOT_TOKEN` described above -- no separate setup needed once that's in place.
 
-- `SLACK_WEBHOOK_URL` — an Incoming Webhook URL for the channel you want updates posted to. As of 2024, Slack requires creating a full app (not just adding an integration to a channel):
-  1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**.
-  2. Name it and pick your workspace.
-  3. In the left sidebar, click **Incoming Webhooks** → toggle it **On**.
-  4. Click **Add New Webhook to Workspace**, pick the channel, **Allow**.
-  5. Copy the URL under "Webhook URLs for Your Workspace" (starts with `https://hooks.slack.com/services/...`).
-
-Both are independently optional -- leave either unset to skip that half. The update is always saved either way, even if both are left off.
+Both channels are independently optional -- leave either unconfigured to skip that half. The update is always saved either way, even if both are left off.
 
 ## Open house reminder emails/DMs (optional)
 
-Five minutes after a scheduled open house's time slot ends (per the **Open House Schedule** admin page), the assigned agent gets a reminder by email and/or a direct Slack message, nudging them to fill out their Open House Update.
+Five minutes after a scheduled open house's time slot ends (per the **Open House Schedule** admin page), the assigned agent gets a reminder by email and a direct Slack message, nudging them to fill out their Open House Update.
 
 Because Render's free plan sleeps the app when nothing's hitting it, this can't run on an internal timer alone -- an external service has to ping the app on a schedule to trigger the check. That ping doubles as what keeps the reminder logic actually running.
 
 **1. Reuse the existing Resend setup above for email** -- no extra step if `RESEND_API_KEY` is already set.
 
-**2. Slack DMs need a bot, not just the webhook above** (a webhook can only post to one fixed channel, not message an arbitrary person). Using the same Slack app you created for `SLACK_WEBHOOK_URL`:
-  1. Go to [api.slack.com/apps](https://api.slack.com/apps) → your app → **OAuth & Permissions** in the left sidebar.
-  2. Scroll to **Scopes** → **Bot Token Scopes** → **Add an OAuth Scope** → add `chat:write` and `users:read.email`.
-  3. Scroll up, click **Install to Workspace** (or **Reinstall to Workspace** if it's already installed) → **Allow**.
-  4. Copy the **Bot User OAuth Token** (starts with `xoxb-`) near the top of that same page.
-  5. Add it as `SLACK_BOT_TOKEN`.
+**2. Reuse the same `SLACK_BOT_TOKEN` from the Slack setup above** -- no extra step needed.
 
 **3. Set a secret to protect the trigger endpoint:**
 
@@ -78,4 +80,4 @@ Because Render's free plan sleeps the app when nothing's hitting it, this can't 
   3. Set it to run every 5 minutes.
   4. Save and enable it.
 
-All three pieces (Resend, Slack bot, cron ping) are independently optional -- whichever aren't configured are just skipped, same pattern as the Open House Update notifications above.
+Resend and the cron ping are each independently optional -- whichever aren't configured are just skipped, same pattern as the Open House Update notifications above. The Slack bot token is shared with the Open House Update feature, so once it's set up once, both features can use it.
