@@ -679,6 +679,7 @@ app.get('/admin/schedule', async (req, res, next) => {
         slot: i,
         houseAddress: rec ? rec.house_address || '' : '',
         date: rec && rec.date ? formatDateInput(rec.date) : '',
+        hours: rec ? rec.hours || '' : '',
         agentId: rec && rec.agent_id ? rec.agent_id : '',
       });
     }
@@ -691,13 +692,14 @@ app.post('/admin/schedule', async (req, res, next) => {
     for (let i = 1; i <= 10; i++) {
       const houseAddress = (req.body[`house_${i}`] || '').trim();
       const date = req.body[`date_${i}`] || null;
+      const hours = (req.body[`hours_${i}`] || '').trim();
       const agentIdRaw = req.body[`agent_${i}`];
       const agentId = agentIdRaw ? parseInt(agentIdRaw, 10) : null;
       await db.query(
-        `INSERT INTO open_house_schedule (slot, house_address, date, agent_id)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (slot) DO UPDATE SET house_address = EXCLUDED.house_address, date = EXCLUDED.date, agent_id = EXCLUDED.agent_id`,
-        [i, houseAddress || null, date || null, agentId]
+        `INSERT INTO open_house_schedule (slot, house_address, date, hours, agent_id)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (slot) DO UPDATE SET house_address = EXCLUDED.house_address, date = EXCLUDED.date, hours = EXCLUDED.hours, agent_id = EXCLUDED.agent_id`,
+        [i, houseAddress || null, date || null, hours || null, agentId]
       );
     }
     res.redirect('/admin/schedule?saved=1');

@@ -53,6 +53,12 @@ CREATE TABLE IF NOT EXISTS open_house_schedule (
   agent_id INTEGER REFERENCES agents(id) ON DELETE SET NULL
 );
 
+-- Which time block this house is being held open for. Free-text rather than
+-- an enum so we're not stuck if the two standard windows ever change; the
+-- admin-schedule.ejs dropdown is what actually constrains the choices day to
+-- day.
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS hours TEXT;
+
 -- 'agent' = typed in by the hosting agent after the fact (the original
 -- feedback form). 'visitor' = the visitor signed themself in on a shared
 -- device at the open house (the /signin flow). Purely informational so

@@ -6,7 +6,7 @@
   <title>Open House Schedule | Open House Feedback</title>
   <%- include('partials-head') %>
   <style>
-    .schedule-row { display: grid; grid-template-columns: 1fr 160px 1fr; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .schedule-row { display: grid; grid-template-columns: 1fr 150px 170px 1fr; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .schedule-row:last-child { border-bottom: none; }
     .schedule-row select, .schedule-row input { width: 100%; }
     .schedule-slot-label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
@@ -48,6 +48,14 @@
               <div>
                 <div class="schedule-slot-label">Date</div>
                 <input type="date" name="date_<%= s.slot %>" value="<%= s.date %>">
+              </div>
+              <div>
+                <div class="schedule-slot-label">Hours</div>
+                <select name="hours_<%= s.slot %>">
+                  <option value="">&mdash; Select hours &mdash;</option>
+                  <option value="1:00 PM - 3:00 PM EST" <%= s.hours === '1:00 PM - 3:00 PM EST' ? 'selected' : '' %>>1:00 PM - 3:00 PM EST</option>
+                  <option value="5:00 PM - 7:00 PM EST" <%= s.hours === '5:00 PM - 7:00 PM EST' ? 'selected' : '' %>>5:00 PM - 7:00 PM EST</option>
+                </select>
               </div>
               <div>
                 <div class="schedule-slot-label">Agent</div>
