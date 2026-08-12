@@ -59,6 +59,14 @@ CREATE TABLE IF NOT EXISTS open_house_schedule (
 -- day.
 ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS hours TEXT;
 
+-- Reminder tracking: reminder_sent_at is set once the "update Chris & Meredith"
+-- nudge has actually gone out for this slot's current house/date/hours/agent
+-- combination. server.js resets both columns back to NULL whenever any of
+-- those four fields change on save, so re-using a slot for a different open
+-- house later still gets its own reminder.
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP;
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_error TEXT;
+
 -- 'agent' = typed in by the hosting agent after the fact (the original
 -- feedback form). 'visitor' = the visitor signed themself in on a shared
 -- device at the open house (the /signin flow). Purely informational so
