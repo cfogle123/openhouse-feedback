@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open House Update | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/update">&larr; Not <%= agent.name %>?</a>
+      <h1>Open House Update</h1>
+      <p class="subtitle"><%= agent.name %>, recap your open house below. This gets sent straight to Chris and Meredith.</p>
+    </header>
+
+    <% if (submitted) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1; margin-bottom: 20px;">
+        <strong style="color: var(--yes);">Sent.</strong> Chris and Meredith have been notified.
+      </div>
+    <% } %>
+
+    <section class="card form-card">
+      <form method="POST" action="/update/<%= agent.slug %>">
+        <div class="form-row">
+          <label>
+            Date
+            <input type="date" name="date" value="<%= today %>" required>
+          </label>
+          <label class="autocomplete-wrap">
+            House Address
+            <input type="text" name="address" id="addressInput" placeholder="123 Main St" autocomplete="off" required>
+            <ul id="addressSuggestions" class="suggestion-list" hidden></ul>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            How Many Visitors?
+            <input type="number" name="visitorCount" min="0" step="1" placeholder="0" required>
+          </label>
+          <label>
+            How Many Are Interested in Making an Offer?
+            <input type="number" name="interestedCount" min="0" step="1" placeholder="0" required>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Send Update</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="/js/address-autocomplete.js"></script>
+  <script>
+    initAddressAutocomplete(
+      document.getElementById('addressInput'),
+      document.getElementById('addressSuggestions'),
+      { addresses: <%- JSON.stringify(houses.map(function (h) { return h.address; })) %> }
+    );
+  </script>
+</body>
+</html>

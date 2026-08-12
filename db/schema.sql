@@ -58,3 +58,17 @@ CREATE TABLE IF NOT EXISTS open_house_schedule (
 -- device at the open house (the /signin flow). Purely informational so
 -- admin views can show where a record came from.
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'agent';
+
+CREATE TABLE IF NOT EXISTS open_house_updates (
+  id SERIAL PRIMARY KEY,
+  agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  address TEXT NOT NULL,
+  date DATE NOT NULL,
+  visitor_count INTEGER NOT NULL DEFAULT 0,
+  interested_count INTEGER NOT NULL DEFAULT 0,
+  email_sent_at TIMESTAMP,
+  email_error TEXT,
+  slack_sent_at TIMESTAMP,
+  slack_error TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);

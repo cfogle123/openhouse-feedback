@@ -5,6 +5,7 @@ const fs = require('fs');
 const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
+const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack } = require('./lib/notifications');
 
 const app = express();
 
@@ -67,6 +68,31 @@ async function syncEntryToFollowUpBoss(entryId, entry) {
   } catch (err) {
     console.error('Follow Up Boss sync failed for entry', entryId, err.message);
     await db.query('UPDATE entries SET fub_error = $2 WHERE id = $1', [entryId, String(err.message).slice(0, 500)]);
+  }
+}
+
+// Fire-and-forget: don't make the agent wait on Resend/Slack (which could
+// be slow or briefly down) before their update submits. The record is
+// already saved either way; email/Slack status is tracked for debugging but
+// not currently shown anywhere in the UI.
+async function notifyOpenHouseUpdate(updateId, update) {
+  try {
+    const result = await sendOpenHouseUpdateEmail(update);
+    if (!result.skipped) {
+      await db.query('UPDATE open_house_updates SET email_sent_at = now(), email_error = NULL WHERE id = $1', [updateId]);
+    }
+  } catch (err) {
+    console.error('Open house update email failed for update', updateId, err.message);
+    await db.query('UPDATE open_house_updates SET email_error = $2 WHERE id = $1', [updateId, String(err.message).slice(0, 500)]);
+  }
+  try {
+    const result = await sendOpenHouseUpdateSlack(update);
+    if (!result.skipped) {
+      await db.query('UPDATE open_house_updates SET slack_sent_at = now(), slack_error = NULL WHERE id = $1', [updateId]);
+    }
+  } catch (err) {
+    console.error('Open house update Slack message failed for update', updateId, err.message);
+    await db.query('UPDATE open_house_updates SET slack_error = $2 WHERE id = $1', [updateId, String(err.message).slice(0, 500)]);
   }
 }
 
@@ -253,6 +279,64 @@ app.post('/signin/session', async (req, res, next) => {
       });
     }
     res.redirect(`/signin/session?agent=${encodeURIComponent(agent.slug)}&house=${encodeURIComponent(address)}&submitted=1`);
+  } catch (err) { next(err); }
+});
+
+// Open House Update, step 1: pick your name.
+app.get('/update', async (req, res, next) => {
+  try {
+    const { rows: agents } = await db.query('SELECT * FROM agents ORDER BY name ASC');
+    res.render('update-agents', { agents: withPhotoUrls(agents) });
+  } catch (err) { next(err); }
+});
+
+// Open House Update, step 2: the recap form (house, visitor count, interested count).
+app.get('/update/:slug', async (req, res, next) => {
+  try {
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.status(404).render('not-found');
+    const houses = await getHouses();
+    res.render('update-form', {
+      agent,
+      houses,
+      today: formatDateInput(new Date()),
+      submitted: req.query.submitted === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+// Open House Update: save the recap, then email + Slack it to Chris and Meredith.
+app.post('/update/:slug', async (req, res, next) => {
+  try {
+    const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
+    const agent = agentRows[0];
+    if (!agent) return res.status(404).render('not-found');
+    const { date, address, visitorCount, interestedCount } = req.body;
+    const addressTrimmed = (address || '').trim();
+    const visitorCountNum = Math.max(0, parseInt(visitorCount, 10) || 0);
+    const interestedCountNum = Math.max(0, parseInt(interestedCount, 10) || 0);
+    const dateValue = date || formatDateInput(new Date());
+
+    const { rows: inserted } = await db.query(
+      `INSERT INTO open_house_updates (agent_id, address, date, visitor_count, interested_count)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [agent.id, addressTrimmed, dateValue, visitorCountNum, interestedCountNum]
+    );
+    if (addressTrimmed) {
+      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [addressTrimmed]);
+    }
+
+    // Fire-and-forget, same reasoning as the Follow Up Boss sync above.
+    notifyOpenHouseUpdate(inserted[0].id, {
+      agentName: agent.name,
+      address: addressTrimmed,
+      dateLabel: formatDayLabel(new Date(`${dateValue}T00:00:00Z`)),
+      visitorCount: visitorCountNum,
+      interestedCount: interestedCountNum,
+    });
+
+    res.redirect(`/update/${agent.slug}?submitted=1`);
   } catch (err) { next(err); }
 });
 

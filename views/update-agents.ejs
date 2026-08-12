@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open House Update | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; Home</a>
+      <h1>Open House Update</h1>
+      <p class="subtitle">Select your name to send Chris and Meredith a quick recap of your open house.</p>
+    </header>
+
+    <div class="agent-grid">
+      <% agents.forEach(function(agent) { %>
+        <a class="agent-card" href="/update/<%= agent.slug %>">
+          <%- include('partials-agent-avatar', { agent: agent }) %>
+          <div class="agent-name"><%= agent.name %></div>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>
