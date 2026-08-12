@@ -209,6 +209,7 @@ app.get('/signin/session', async (req, res, next) => {
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [slug]);
     const agent = agentRows[0];
     if (!agent) return res.redirect('/signin');
+    agent.photoUrl = getAgentPhotoUrl(agent.slug);
     res.render('signin-session', {
       agent,
       house,

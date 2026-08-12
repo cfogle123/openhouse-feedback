@@ -254,6 +254,85 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
   box-shadow: 0 2px 8px rgba(9,42,73,0.1);
 }
 
+/* Full-bleed visitor sign-in kiosk layout, used only when a house photo is
+   available: photo fills the left panel, the form fills the right panel,
+   similar to what a tablet-based sign-in kiosk looks like. */
+.kiosk-split {
+  display: flex;
+  min-height: 100vh;
+}
+
+.kiosk-photo-panel {
+  flex: 0 0 55%;
+  min-height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--brand);
+  position: relative;
+}
+
+.kiosk-photo-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 28px 32px;
+  background: linear-gradient(to top, rgba(9,20,32,0.75), rgba(9,20,32,0));
+  color: #fff;
+}
+
+.kiosk-address {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.kiosk-host {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.kiosk-host .agent-photo,
+.kiosk-host .agent-initial {
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.kiosk-form-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.kiosk-form-panel .form-card,
+.kiosk-form-panel .card {
+  margin-top: 0;
+}
+
+@media (max-width: 860px) {
+  .kiosk-split {
+    flex-direction: column;
+    min-height: 0;
+  }
+  .kiosk-photo-panel {
+    flex: 0 0 220px;
+    min-height: 220px;
+  }
+  .kiosk-form-panel {
+    padding: 28px 20px;
+  }
+}
+
 
 .tag-self {
   display: inline-block;
