@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open House Update | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/update">&larr; Not <%= agent.name %>?</a>
+      <h1>Open House Update</h1>
+      <p class="subtitle"><%= agent.name %>, recap your open house below. This gets sent straight to Chris and Meredith.</p>
+    </header>
+
+    <% if (submitted) { %>
+      <div class="card" style="border-color: var(--yes); background: #f0f8f1; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px;"><strong style="color: var(--yes);">Saved.</strong> Your open house update was recorded.</p>
+        <p style="margin: 0 0 4px; font-size: 14px;">
+          Email:
+          <% if (lastUpdate && lastUpdate.email_sent_at) { %>
+            <span class="badge badge-yes">Sent to Chris &amp; Meredith</span>
+          <% } else if (lastUpdate && lastUpdate.email_error) { %>
+            <span class="badge badge-no" title="<%= lastUpdate.email_error %>">Failed &mdash; hover for details</span>
+          <% } else if (!emailConfigured) { %>
+            <span class="muted">Not set up yet (add RESEND_API_KEY in Render)</span>
+          <% } else { %>
+            <span class="muted">Sending&hellip;</span>
+          <% } %>
+        </p>
+        <p style="margin: 0; font-size: 14px;">
+          Slack:
+          <% if (lastUpdate && lastUpdate.slack_sent_at) { %>
+            <span class="badge badge-yes">Posted to Slack</span>
+          <% } else if (lastUpdate && lastUpdate.slack_error) { %>
+            <span class="badge badge-no" title="<%= lastUpdate.slack_error %>">Failed &mdash; hover for details</span>
+          <% } else if (!slackConfigured) { %>
+            <span class="muted">Not set up yet (add SLACK_WEBHOOK_URL in Render)</span>
+          <% } else { %>
+            <span class="muted">Sending&hellip;</span>
+          <% } %>
+        </p>
+      </div>
+    <% } %>
+
+    <section class="card form-card">
+      <form method="POST" action="/update/<%= agent.slug %>">
+        <div class="form-row">
+          <label>
+            Date
+            <input type="date" name="date" value="<%= today %>" required>
+          </label>
+          <label class="autocomplete-wrap">
+            House Address
+            <input type="text" name="address" id="addressInput" placeholder="123 Main St" autocomplete="off" required>
+            <ul id="addressSuggestions" class="suggestion-list" hidden></ul>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            How Many Visitors?
+            <input type="number" name="visitorCount" min="0" step="1" placeholder="0" required>
+          </label>
+          <label>
+            How Many Are Interested in Making an Offer?
+            <input type="number" name="interestedCount" min="0" step="1" placeholder="0" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="full-width">
+            Comments
+            <textarea name="comments" rows="4" placeholder="Anything else worth mentioning..."></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Send Update</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="/js/address-autocomplete.js"></script>
+  <script>
+    initAddressAutocomplete(
+      document.getElementById('addressInput'),
+      document.getElementById('addressSuggestions'),
+      { addresses: <%- JSON.stringify(houses.map(function (h) { return h.address; })) %> }
+    );
+  </script>
+</body>
+</html>

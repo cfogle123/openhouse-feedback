@@ -323,16 +323,17 @@ app.post('/update/:slug', async (req, res, next) => {
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [req.params.slug]);
     const agent = agentRows[0];
     if (!agent) return res.status(404).render('not-found');
-    const { date, address, visitorCount, interestedCount } = req.body;
+    const { date, address, visitorCount, interestedCount, comments } = req.body;
     const addressTrimmed = (address || '').trim();
     const visitorCountNum = Math.max(0, parseInt(visitorCount, 10) || 0);
     const interestedCountNum = Math.max(0, parseInt(interestedCount, 10) || 0);
+    const commentsTrimmed = (comments || '').trim();
     const dateValue = date || formatDateInput(new Date());
 
     const { rows: inserted } = await db.query(
-      `INSERT INTO open_house_updates (agent_id, address, date, visitor_count, interested_count)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [agent.id, addressTrimmed, dateValue, visitorCountNum, interestedCountNum]
+      `INSERT INTO open_house_updates (agent_id, address, date, visitor_count, interested_count, comments)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [agent.id, addressTrimmed, dateValue, visitorCountNum, interestedCountNum, commentsTrimmed || null]
     );
     if (addressTrimmed) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [addressTrimmed]);
@@ -345,6 +346,7 @@ app.post('/update/:slug', async (req, res, next) => {
       dateLabel: formatDayLabel(new Date(`${dateValue}T00:00:00Z`)),
       visitorCount: visitorCountNum,
       interestedCount: interestedCountNum,
+      comments: commentsTrimmed,
     });
 
     res.redirect(`/update/${agent.slug}?submitted=1&updateId=${inserted[0].id}`);
