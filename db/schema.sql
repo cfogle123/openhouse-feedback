@@ -72,3 +72,5 @@ CREATE TABLE IF NOT EXISTS open_house_updates (
   slack_error TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
+
+ALTER TABLE open_house_updates ADD COLUMN IF NOT EXISTS comments TEXT;
