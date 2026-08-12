@@ -5,7 +5,7 @@ const fs = require('fs');
 const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
-const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack } = require('./lib/notifications');
+const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, isSlackConfigured } = require('./lib/notifications');
 
 const app = express();
 
@@ -297,11 +297,22 @@ app.get('/update/:slug', async (req, res, next) => {
     const agent = agentRows[0];
     if (!agent) return res.status(404).render('not-found');
     const houses = await getHouses();
+    let lastUpdate = null;
+    if (req.query.updateId) {
+      const { rows } = await db.query(
+        'SELECT * FROM open_house_updates WHERE id = $1 AND agent_id = $2',
+        [req.query.updateId, agent.id]
+      );
+      lastUpdate = rows[0] || null;
+    }
     res.render('update-form', {
       agent,
       houses,
       today: formatDateInput(new Date()),
       submitted: req.query.submitted === '1',
+      lastUpdate,
+      emailConfigured: isEmailConfigured(),
+      slackConfigured: isSlackConfigured(),
     });
   } catch (err) { next(err); }
 });
@@ -336,7 +347,7 @@ app.post('/update/:slug', async (req, res, next) => {
       interestedCount: interestedCountNum,
     });
 
-    res.redirect(`/update/${agent.slug}?submitted=1`);
+    res.redirect(`/update/${agent.slug}?submitted=1&updateId=${inserted[0].id}`);
   } catch (err) { next(err); }
 });
 

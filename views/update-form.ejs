@@ -17,7 +17,31 @@
 
     <% if (submitted) { %>
       <div class="card" style="border-color: var(--yes); background: #f0f8f1; margin-bottom: 20px;">
-        <strong style="color: var(--yes);">Sent.</strong> Chris and Meredith have been notified.
+        <p style="margin: 0 0 10px;"><strong style="color: var(--yes);">Saved.</strong> Your open house update was recorded.</p>
+        <p style="margin: 0 0 4px; font-size: 14px;">
+          Email:
+          <% if (lastUpdate && lastUpdate.email_sent_at) { %>
+            <span class="badge badge-yes">Sent to Chris &amp; Meredith</span>
+          <% } else if (lastUpdate && lastUpdate.email_error) { %>
+            <span class="badge badge-no" title="<%= lastUpdate.email_error %>">Failed &mdash; hover for details</span>
+          <% } else if (!emailConfigured) { %>
+            <span class="muted">Not set up yet (add RESEND_API_KEY in Render)</span>
+          <% } else { %>
+            <span class="muted">Sending&hellip;</span>
+          <% } %>
+        </p>
+        <p style="margin: 0; font-size: 14px;">
+          Slack:
+          <% if (lastUpdate && lastUpdate.slack_sent_at) { %>
+            <span class="badge badge-yes">Posted to Slack</span>
+          <% } else if (lastUpdate && lastUpdate.slack_error) { %>
+            <span class="badge badge-no" title="<%= lastUpdate.slack_error %>">Failed &mdash; hover for details</span>
+          <% } else if (!slackConfigured) { %>
+            <span class="muted">Not set up yet (add SLACK_WEBHOOK_URL in Render)</span>
+          <% } else { %>
+            <span class="muted">Sending&hellip;</span>
+          <% } %>
+        </p>
       </div>
     <% } %>
 
