@@ -43,6 +43,39 @@ To turn on email, add:
 
 To turn on Slack, add:
 
-- `SLACK_WEBHOOK_URL` — an Incoming Webhook URL for the channel you want updates posted to. In Slack, go to a channel → channel name → **Integrations** → **Add an App** → search **Incoming Webhooks** → **Add to Slack**, pick the channel, and copy the webhook URL it gives you.
+- `SLACK_WEBHOOK_URL` — an Incoming Webhook URL for the channel you want updates posted to. As of 2024, Slack requires creating a full app (not just adding an integration to a channel):
+  1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**.
+  2. Name it and pick your workspace.
+  3. In the left sidebar, click **Incoming Webhooks** → toggle it **On**.
+  4. Click **Add New Webhook to Workspace**, pick the channel, **Allow**.
+  5. Copy the URL under "Webhook URLs for Your Workspace" (starts with `https://hooks.slack.com/services/...`).
 
 Both are independently optional -- leave either unset to skip that half. The update is always saved either way, even if both are left off.
+
+## Open house reminder emails/DMs (optional)
+
+Five minutes after a scheduled open house's time slot ends (per the **Open House Schedule** admin page), the assigned agent gets a reminder by email and/or a direct Slack message, nudging them to fill out their Open House Update.
+
+Because Render's free plan sleeps the app when nothing's hitting it, this can't run on an internal timer alone -- an external service has to ping the app on a schedule to trigger the check. That ping doubles as what keeps the reminder logic actually running.
+
+**1. Reuse the existing Resend setup above for email** -- no extra step if `RESEND_API_KEY` is already set.
+
+**2. Slack DMs need a bot, not just the webhook above** (a webhook can only post to one fixed channel, not message an arbitrary person). Using the same Slack app you created for `SLACK_WEBHOOK_URL`:
+  1. Go to [api.slack.com/apps](https://api.slack.com/apps) → your app → **OAuth & Permissions** in the left sidebar.
+  2. Scroll to **Scopes** → **Bot Token Scopes** → **Add an OAuth Scope** → add `chat:write` and `users:read.email`.
+  3. Scroll up, click **Install to Workspace** (or **Reinstall to Workspace** if it's already installed) → **Allow**.
+  4. Copy the **Bot User OAuth Token** (starts with `xoxb-`) near the top of that same page.
+  5. Add it as `SLACK_BOT_TOKEN`.
+
+**3. Set a secret to protect the trigger endpoint:**
+
+- `REMINDER_CRON_SECRET` — any random string you pick (doesn't come from anywhere else, you're inventing it). Anyone hitting `/internal/reminders/run` without the matching `?secret=...` gets rejected, so this just needs to be hard to guess.
+- `APP_URL` — optional, defaults to `https://thelistopenhouses.com`. Used to build the link in the reminder to the agent's update form.
+
+**4. Set up the external ping** (free, at [cron-job.org](https://cron-job.org)):
+  1. Sign up for a free account.
+  2. Create a new cron job with URL: `https://thelistopenhouses.com/internal/reminders/run?secret=YOUR_SECRET_HERE`
+  3. Set it to run every 5 minutes.
+  4. Save and enable it.
+
+All three pieces (Resend, Slack bot, cron ping) are independently optional -- whichever aren't configured are just skipped, same pattern as the Open House Update notifications above.

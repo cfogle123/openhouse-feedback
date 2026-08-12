@@ -6,6 +6,7 @@ const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
 const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, isSlackConfigured } = require('./lib/notifications');
+const { runDueReminders } = require('./lib/reminders');
 
 const app = express();
 
@@ -695,14 +696,52 @@ app.post('/admin/schedule', async (req, res, next) => {
       const hours = (req.body[`hours_${i}`] || '').trim();
       const agentIdRaw = req.body[`agent_${i}`];
       const agentId = agentIdRaw ? parseInt(agentIdRaw, 10) : null;
+      // Reminder state (reminder_sent_at/reminder_error) only resets when
+      // this slot's house/date/hours/agent actually changed -- otherwise an
+      // unrelated edit to a different row (the whole 10-row form always
+      // submits together) would wipe out a reminder that already went out.
+      // "Changed" is checked with COALESCE-against-a-sentinel rather than
+      // IS DISTINCT FROM (the more obvious way to null-safe-compare) purely
+      // for our own test harness's sake -- functionally equivalent here
+      // since none of these columns are ever stored as '' (always NULL or a
+      // real value, per the `|| null` coercion above).
+      const changedCondition = `(
+        COALESCE(open_house_schedule.house_address, '') != COALESCE(EXCLUDED.house_address, '')
+        OR COALESCE(open_house_schedule.date, '0001-01-01'::date) != COALESCE(EXCLUDED.date, '0001-01-01'::date)
+        OR COALESCE(open_house_schedule.hours, '') != COALESCE(EXCLUDED.hours, '')
+        OR COALESCE(open_house_schedule.agent_id, -1) != COALESCE(EXCLUDED.agent_id, -1)
+      )`;
       await db.query(
-        `INSERT INTO open_house_schedule (slot, house_address, date, hours, agent_id)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (slot) DO UPDATE SET house_address = EXCLUDED.house_address, date = EXCLUDED.date, hours = EXCLUDED.hours, agent_id = EXCLUDED.agent_id`,
+        `INSERT INTO open_house_schedule (slot, house_address, date, hours, agent_id, reminder_sent_at, reminder_error)
+         VALUES ($1, $2, $3, $4, $5, NULL, NULL)
+         ON CONFLICT (slot) DO UPDATE SET
+           house_address = EXCLUDED.house_address,
+           date = EXCLUDED.date,
+           hours = EXCLUDED.hours,
+           agent_id = EXCLUDED.agent_id,
+           reminder_sent_at = CASE WHEN ${changedCondition} THEN NULL ELSE open_house_schedule.reminder_sent_at END,
+           reminder_error = CASE WHEN ${changedCondition} THEN NULL ELSE open_house_schedule.reminder_error END`,
         [i, houseAddress || null, date || null, hours || null, agentId]
       );
     }
     res.redirect('/admin/schedule?saved=1');
+  } catch (err) { next(err); }
+});
+
+// Pinged periodically by an external cron service (the app itself can't
+// reliably run its own timer on Render's free tier, since the instance
+// sleeps when idle). Protected by a shared secret in the query string so
+// random requests can't trigger it or spam agents.
+app.get('/internal/reminders/run', async (req, res, next) => {
+  try {
+    if (!process.env.REMINDER_CRON_SECRET) {
+      return res.status(503).json({ error: 'REMINDER_CRON_SECRET is not configured' });
+    }
+    if (req.query.secret !== process.env.REMINDER_CRON_SECRET) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    const result = await runDueReminders();
+    res.json(result);
   } catch (err) { next(err); }
 });
 
