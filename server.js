@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const db = require('./db');
 const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
@@ -9,6 +10,18 @@ const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, i
 const { runDueReminders } = require('./lib/reminders');
 
 const app = express();
+
+// House photos are uploaded through the House Addresses admin page and
+// stored directly in the database (see schema.sql's comment on
+// houses.photo) -- memoryStorage just buffers the upload in RAM long enough
+// to write it into a query, nothing touches disk. 8MB is generous for a
+// phone photo while still bounding how much a single upload can add to the
+// database.
+const housePhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+});
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -131,8 +144,12 @@ function getRemainingWeekendDates() {
   return dates;
 }
 
+// Deliberately doesn't select the photo bytea column -- this is called on
+// nearly every page (autocomplete lists, dropdowns, etc.) and none of those
+// need the actual image bytes, just the address. Keeps those pages fast
+// even once a bunch of house photos are stored.
 async function getHouses() {
-  const { rows } = await db.query('SELECT * FROM houses ORDER BY address ASC');
+  const { rows } = await db.query('SELECT id, address, created_at FROM houses ORDER BY address ASC');
   return rows;
 }
 
@@ -154,13 +171,16 @@ function withPhotoUrls(agents) {
   return agents.map((a) => ({ ...a, photoUrl: getAgentPhotoUrl(a.slug) }));
 }
 
-// House photos work the same way as agent headshots: a plain static file in
-// public/house-photos/, named after a slugified version of the address
-// (since houses are just free-text addresses, not a fixed slug column).
 function slugifyAddress(address) {
   return String(address || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
-function getHousePhotoUrl(address) {
+
+// Static-file fallback for the 5 house photos that were manually uploaded
+// to public/house-photos/ before the admin-page upload UI existed. New or
+// replaced photos going forward are stored in the database instead (see
+// getHousePhotoUrl below), but these keep working without needing to be
+// re-uploaded.
+function getStaticHousePhotoUrl(address) {
   const slug = slugifyAddress(address);
   if (!slug) return null;
   for (const ext of HEADSHOT_EXTENSIONS) {
@@ -168,6 +188,26 @@ function getHousePhotoUrl(address) {
     if (fs.existsSync(filePath)) return `/house-photos/${slug}.${ext}`;
   }
   return null;
+}
+
+// Prefers a database-stored photo (uploaded via the admin House Addresses
+// page) and falls back to the static-file convention above when a house
+// has no DB photo. The `v=` query param is a cache-buster so a browser that
+// already cached the old image at this URL fetches the new one after a
+// replace, since /house-photo/:id responds with a long-lived immutable
+// cache header.
+async function getHousePhotoUrl(address) {
+  const trimmed = String(address || '').trim();
+  if (!trimmed) return null;
+  const { rows } = await db.query(
+    'SELECT id, photo_updated_at FROM houses WHERE address = $1 AND photo IS NOT NULL',
+    [trimmed]
+  );
+  if (rows[0]) {
+    const v = rows[0].photo_updated_at ? new Date(rows[0].photo_updated_at).getTime() : 0;
+    return `/house-photo/${rows[0].id}?v=${v}`;
+  }
+  return getStaticHousePhotoUrl(trimmed);
 }
 
 // Agent id -> house address for whatever's scheduled today, used to
@@ -240,7 +280,7 @@ app.get('/signin/session', async (req, res, next) => {
     res.render('signin-session', {
       agent,
       house,
-      housePhotoUrl: getHousePhotoUrl(house),
+      housePhotoUrl: await getHousePhotoUrl(house),
       interestOptions: INTEREST_OPTIONS,
       submitted: submitted === '1',
     });
@@ -531,19 +571,32 @@ app.get('/admin/feedback', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Admin: manage the list of house addresses (suggestions shown on the entry form)
+// Admin: manage the list of house addresses (suggestions shown on the entry
+// form). Unlike getHouses() used elsewhere, this DOES fetch photo metadata
+// (but never the actual photo bytes -- photo_mime IS NOT NULL is enough to
+// know whether to show a thumbnail) since this page needs to show it.
 app.get('/admin/houses', async (req, res, next) => {
   try {
-    const houses = await getHouses();
+    const { rows: houses } = await db.query(
+      `SELECT id, address, created_at, photo_mime, photo_updated_at FROM houses ORDER BY address ASC`
+    );
     res.render('admin-houses', { houses });
   } catch (err) { next(err); }
 });
 
-app.post('/admin/houses', async (req, res, next) => {
+app.post('/admin/houses', housePhotoUpload.single('photo'), async (req, res, next) => {
   try {
     const address = (req.body.address || '').trim();
     if (address) {
-      await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address]);
+      if (req.file) {
+        await db.query(
+          `INSERT INTO houses (address, photo, photo_mime, photo_updated_at) VALUES ($1, $2, $3, now())
+           ON CONFLICT (address) DO UPDATE SET photo = EXCLUDED.photo, photo_mime = EXCLUDED.photo_mime, photo_updated_at = now()`,
+          [address, req.file.buffer, req.file.mimetype]
+        );
+      } else {
+        await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address]);
+      }
     }
     res.redirect('/admin/houses');
   } catch (err) { next(err); }
@@ -553,6 +606,46 @@ app.post('/admin/houses/:id/delete', async (req, res, next) => {
   try {
     await db.query('DELETE FROM houses WHERE id = $1', [req.params.id]);
     res.redirect('/admin/houses');
+  } catch (err) { next(err); }
+});
+
+// Upload/replace the photo on an already-saved address, from the Saved
+// Addresses table (as opposed to setting one at the moment the address is
+// first added, via the form above).
+app.post('/admin/houses/:id/photo', housePhotoUpload.single('photo'), async (req, res, next) => {
+  try {
+    if (req.file) {
+      await db.query(
+        'UPDATE houses SET photo = $2, photo_mime = $3, photo_updated_at = now() WHERE id = $1',
+        [req.params.id, req.file.buffer, req.file.mimetype]
+      );
+    }
+    res.redirect('/admin/houses');
+  } catch (err) { next(err); }
+});
+
+app.post('/admin/houses/:id/photo/delete', async (req, res, next) => {
+  try {
+    await db.query(
+      'UPDATE houses SET photo = NULL, photo_mime = NULL, photo_updated_at = NULL WHERE id = $1',
+      [req.params.id]
+    );
+    res.redirect('/admin/houses');
+  } catch (err) { next(err); }
+});
+
+// Serves a house photo stored in the database (see schema.sql's comment on
+// houses.photo for why it's here instead of a static file). Cached
+// aggressively + immutably since the URL always includes a `v=` timestamp
+// that changes whenever the photo is replaced (see getHousePhotoUrl).
+app.get('/house-photo/:id', async (req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT photo, photo_mime FROM houses WHERE id = $1', [req.params.id]);
+    const house = rows[0];
+    if (!house || !house.photo) return res.status(404).end();
+    res.set('Content-Type', house.photo_mime || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(house.photo);
   } catch (err) { next(err); }
 });
 

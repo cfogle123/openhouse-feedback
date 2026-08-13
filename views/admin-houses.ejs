@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>House Addresses | Open House Feedback</title>
   <%- include('partials-head') %>
+  <style>
+    .house-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; display: block; border: 1px solid var(--border); }
+    .house-thumb-empty { width: 48px; height: 48px; border-radius: 6px; border: 1px dashed var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; text-align: center; }
+    .photo-cell { display: flex; align-items: center; gap: 10px; }
+    .photo-upload-form { display: flex; align-items: center; gap: 8px; }
+    .photo-upload-form input[type=file] { font-size: 12px; max-width: 160px; }
+  </style>
 </head>
 <body>
   <%- include('partials-topbar') %>
@@ -12,16 +19,22 @@
     <header class="page-header">
       <a class="back-link" href="/admin/scheduling">&larr; Open House Schedule</a>
       <h1>House Addresses</h1>
-      <p class="subtitle">Add addresses here so they show up as suggestions on every agent's entry form. Addresses are also added automatically the first time someone uses them.</p>
+      <p class="subtitle">Add addresses here so they show up as suggestions on every agent's entry form. Addresses are also added automatically the first time someone uses them. Add a photo to have it show up on the Visitor Sign-In page for that house.</p>
     </header>
 
     <section class="card form-card">
       <h2>Add an Address</h2>
-      <form method="POST" action="/admin/houses">
+      <form method="POST" action="/admin/houses" enctype="multipart/form-data">
         <div class="form-row">
           <label class="full-width">
             Address
             <input type="text" name="address" placeholder="123 Main St" required>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="full-width">
+            Photo (optional)
+            <input type="file" name="photo" accept="image/*">
           </label>
         </div>
         <div class="form-actions">
@@ -38,12 +51,28 @@
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Address</th><th></th></tr>
+              <tr><th>Address</th><th>Photo</th><th></th></tr>
             </thead>
             <tbody>
               <% houses.forEach(function(h) { %>
                 <tr>
                   <td><%= h.address %></td>
+                  <td class="photo-cell">
+                    <% if (h.photo_mime) { %>
+                      <img class="house-thumb" src="/house-photo/<%= h.id %>?v=<%= h.photo_updated_at ? new Date(h.photo_updated_at).getTime() : 0 %>" alt="<%= h.address %>">
+                    <% } else { %>
+                      <div class="house-thumb-empty">No photo</div>
+                    <% } %>
+                    <form method="POST" action="/admin/houses/<%= h.id %>/photo" enctype="multipart/form-data" class="photo-upload-form">
+                      <input type="file" name="photo" accept="image/*" required>
+                      <button type="submit" class="link-btn"><%= h.photo_mime ? 'Replace' : 'Upload' %></button>
+                    </form>
+                    <% if (h.photo_mime) { %>
+                      <form method="POST" action="/admin/houses/<%= h.id %>/photo/delete" onsubmit="return confirm('Remove this house\'s photo?');">
+                        <button type="submit" class="link-btn">Remove photo</button>
+                      </form>
+                    <% } %>
+                  </td>
                   <td class="row-actions">
                     <form method="POST" action="/admin/houses/<%= h.id %>/delete" onsubmit="return confirm('Remove this address from the suggestion list? Existing entries keep their address.');">
                       <button type="submit" class="link-btn">Remove</button>

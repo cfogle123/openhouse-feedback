@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS houses (
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Uploaded via the House Addresses admin page. Stored directly in the
+-- database (not as files on disk) because Render's free plan wipes
+-- anything written to disk outside the git repo on every redeploy -- the
+-- database is the only place on this stack that reliably persists. The 5
+-- house photos added earlier via manual file upload to public/house-photos/
+-- still work as a fallback (see getHousePhotoUrl in server.js); newly
+-- added/replaced photos going forward live here instead.
+ALTER TABLE houses ADD COLUMN IF NOT EXISTS photo BYTEA;
+ALTER TABLE houses ADD COLUMN IF NOT EXISTS photo_mime TEXT;
+ALTER TABLE houses ADD COLUMN IF NOT EXISTS photo_updated_at TIMESTAMP;
+
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS buyer_agent_name TEXT;
 
 CREATE TABLE IF NOT EXISTS availability (
