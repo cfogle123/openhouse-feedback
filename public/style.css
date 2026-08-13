@@ -205,6 +205,19 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
 }
 .checkbox-label input { width: auto; }
 
+.radio-group {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 24px !important;
+}
+.radio-group label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  font-weight: 400;
+}
+.radio-group input { width: auto; }
+
 .autocomplete-wrap { position: relative; }
 
 .suggestion-list {

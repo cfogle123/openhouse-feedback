@@ -73,6 +73,17 @@ ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_error TEXT;
 -- admin views can show where a record came from.
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'agent';
 
+-- Fields collected only by the visitor self-sign-in kiosk (/signin flow),
+-- always NULL on entries created via the agent feedback form. buyer_name
+-- stays populated too (first + last combined) so every existing admin view,
+-- CSV export, and Follow Up Boss call that already reads buyer_name keeps
+-- working unchanged.
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS buyer_first_name TEXT;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS buyer_last_name TEXT;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS visitor_home_address TEXT;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS owns_or_rents TEXT;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS wants_off_market_info BOOLEAN;
+
 CREATE TABLE IF NOT EXISTS open_house_updates (
   id SERIAL PRIMARY KEY,
   agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,

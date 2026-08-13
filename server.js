@@ -252,17 +252,41 @@ app.get('/signin/session', async (req, res, next) => {
 // tagged source='visitor' so it's clear where it came from.
 app.post('/signin/session', async (req, res, next) => {
   try {
-    const { agentSlug, house, visitorName, visitorPhone, visitorEmail, interested, hasAgent, visitorAgentName, comments } = req.body;
+    const {
+      agentSlug, house,
+      visitorFirstName, visitorLastName, visitorPhone, visitorEmail,
+      visitorHomeAddress, visitorOwnRent,
+      hasAgent, visitorAgentName, wantsOffMarket,
+    } = req.body;
     const { rows: agentRows } = await db.query('SELECT * FROM agents WHERE slug = $1', [agentSlug]);
     const agent = agentRows[0];
     if (!agent) return res.redirect('/signin');
-    const hasAgentBool = hasAgent === 'on';
+    const hasAgentBool = hasAgent === 'yes';
+    const firstName = (visitorFirstName || '').trim();
+    const lastName = (visitorLastName || '').trim();
+    const fullName = `${firstName} ${lastName}`.trim();
     const address = (house || '').trim();
     const date = formatDateInput(new Date());
+    const homeAddress = (visitorHomeAddress || '').trim() || null;
+    const ownsOrRents = visitorOwnRent === 'Own' || visitorOwnRent === 'Rent' ? visitorOwnRent : null;
+    // Off-market interest is only asked (and only meaningful) when the
+    // visitor doesn't already have a buyer's agent; leave it NULL rather
+    // than false when the question was never shown to them.
+    const wantsOffMarketBool = hasAgentBool ? null : (wantsOffMarket === 'yes' ? true : (wantsOffMarket === 'no' ? false : null));
+
     const { rows: inserted } = await db.query(
-      `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, buyer_agent_name, feedback, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'visitor') RETURNING id`,
-      [agent.id, date, address, visitorName, visitorPhone || null, visitorEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((visitorAgentName || '').trim() || null) : null, comments || null]
+      `INSERT INTO entries (
+         agent_id, date, address, buyer_name, buyer_first_name, buyer_last_name,
+         buyer_phone, buyer_email, has_agent, buyer_agent_name,
+         visitor_home_address, owns_or_rents, wants_off_market_info, source
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'visitor') RETURNING id`,
+      [
+        agent.id, date, address, fullName, firstName || null, lastName || null,
+        visitorPhone || null, visitorEmail || null, hasAgentBool,
+        hasAgentBool ? ((visitorAgentName || '').trim() || null) : null,
+        homeAddress, ownsOrRents, wantsOffMarketBool,
+      ]
     );
     if (address) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address]);
@@ -271,12 +295,13 @@ app.post('/signin/session', async (req, res, next) => {
       syncEntryToFollowUpBoss(inserted[0].id, {
         agentName: agent.name,
         agentEmail: agent.email,
-        buyerName: visitorName,
+        buyerName: fullName,
         buyerPhone: visitorPhone,
         buyerEmail: visitorEmail,
         address,
-        feedback: comments,
-        interested: interested || 'Maybe',
+        homeAddress,
+        ownsOrRents,
+        wantsOffMarketInfo: wantsOffMarketBool,
       });
     }
     res.redirect(`/signin/session?agent=${encodeURIComponent(agent.slug)}&house=${encodeURIComponent(address)}&submitted=1`);
