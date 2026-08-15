@@ -77,6 +77,10 @@ ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS hours TEXT;
 -- house later still gets its own reminder.
 ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP;
 ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_error TEXT;
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_email_sent_at TIMESTAMP;
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_email_error TEXT;
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_slack_sent_at TIMESTAMP;
+ALTER TABLE open_house_schedule ADD COLUMN IF NOT EXISTS reminder_slack_error TEXT;
 
 -- 'agent' = typed in by the hosting agent after the fact (the original
 -- feedback form). 'visitor' = the visitor signed themself in on a shared
