@@ -114,3 +114,18 @@ CREATE TABLE IF NOT EXISTS open_house_updates (
 );
 
 ALTER TABLE open_house_updates ADD COLUMN IF NOT EXISTS comments TEXT;
+
+-- Shared document library for open house sign placement plans (PDFs and
+-- Word docs) -- not tied to any specific address, just a flat list any
+-- agent can add to or pull from. Stored as BYTEA for the same reason as
+-- house photos: Render's free plan wipes anything written to disk outside
+-- the git repo on every redeploy, so the database is the only reliable
+-- place to keep uploaded files.
+CREATE TABLE IF NOT EXISTS sign_plans (
+  id SERIAL PRIMARY KEY,
+  filename TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  data BYTEA NOT NULL,
+  uploaded_by TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT now()
+);
