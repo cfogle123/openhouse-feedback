@@ -23,6 +23,21 @@ const housePhotoUpload = multer({
   fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
 });
 
+// Sign plan documents (PDFs / Word docs), uploaded from the shared Sign
+// Plans library page. Same memoryStorage approach as house photos, just a
+// different allowed mime list and a bigger size cap since these are
+// documents rather than phone photos.
+const SIGN_PLAN_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const signPlanUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, SIGN_PLAN_MIME_TYPES.has(file.mimetype)),
+});
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
@@ -646,6 +661,52 @@ app.get('/house-photo/:id', async (req, res, next) => {
     res.set('Content-Type', house.photo_mime || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.send(house.photo);
+  } catch (err) { next(err); }
+});
+
+// Sign Plans: a shared document library (not tied to any address) that any
+// agent can upload to or pull from, for open house sign placement plans.
+app.get('/sign-plans', async (req, res, next) => {
+  try {
+    const { rows: plans } = await db.query(
+      `SELECT id, filename, mime, uploaded_by, created_at FROM sign_plans ORDER BY created_at DESC`
+    );
+    res.render('sign-plans', { plans });
+  } catch (err) { next(err); }
+});
+
+app.post('/sign-plans', signPlanUpload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.render('sign-plans', {
+        plans: (await db.query(`SELECT id, filename, mime, uploaded_by, created_at FROM sign_plans ORDER BY created_at DESC`)).rows,
+        error: 'Please choose a PDF or Word document to upload.',
+      });
+    }
+    const uploadedBy = (req.body.uploaded_by || '').trim();
+    await db.query(
+      `INSERT INTO sign_plans (filename, mime, data, uploaded_by) VALUES ($1, $2, $3, $4)`,
+      [req.file.originalname, req.file.mimetype, req.file.buffer, uploadedBy || null]
+    );
+    res.redirect('/sign-plans');
+  } catch (err) { next(err); }
+});
+
+app.get('/sign-plans/:id/download', async (req, res, next) => {
+  try {
+    const { rows } = await db.query('SELECT filename, mime, data FROM sign_plans WHERE id = $1', [req.params.id]);
+    const plan = rows[0];
+    if (!plan) return res.status(404).end();
+    res.set('Content-Type', plan.mime || 'application/octet-stream');
+    res.set('Content-Disposition', `inline; filename="${plan.filename.replace(/"/g, '')}"`);
+    res.send(plan.data);
+  } catch (err) { next(err); }
+});
+
+app.post('/sign-plans/:id/delete', async (req, res, next) => {
+  try {
+    await db.query('DELETE FROM sign_plans WHERE id = $1', [req.params.id]);
+    res.redirect('/sign-plans');
   } catch (err) { next(err); }
 });
 
