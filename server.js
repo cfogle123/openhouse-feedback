@@ -43,7 +43,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const INTEREST_OPTIONS = ['Yes', 'No', 'Maybe'];
+const INTEREST_OPTIONS = ['Yes', 'No'];
 
 function formatDateInput(d) {
   return new Date(d).toISOString().slice(0, 10);
