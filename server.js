@@ -260,6 +260,53 @@ app.get('/availability', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Visitor Sign-In (kiosk) PIN gate: this device is usually left sitting
+// out at an open house, so anyone who wanders up to it (or types the URL)
+// could otherwise fill in the form. A single shared PIN, set via the
+// SIGNIN_PIN env var, gates every /signin route behind a simple unlock
+// page. Once entered correctly, a cookie remembers it on that device for 6
+// months so the kiosk doesn't need re-unlocking at every open house.
+const SIGNIN_UNLOCK_COOKIE = 'signin_pin';
+
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  const cookies = {};
+  if (!header) return cookies;
+  header.split(';').forEach((pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return;
+    const key = pair.slice(0, idx).trim();
+    const val = decodeURIComponent(pair.slice(idx + 1).trim());
+    cookies[key] = val;
+  });
+  return cookies;
+}
+
+app.use('/signin', (req, res, next) => {
+  // The unlock form itself (and its submit target) must stay reachable, or
+  // no one could ever get past the gate in the first place.
+  if (req.path === '/unlock') return next();
+  const pin = process.env.SIGNIN_PIN;
+  const cookies = parseCookies(req);
+  if (pin && cookies[SIGNIN_UNLOCK_COOKIE] === pin) return next();
+  res.render('signin-lock', { error: null, next: req.originalUrl });
+});
+
+app.post('/signin/unlock', (req, res) => {
+  const { pin, next: nextUrl } = req.body;
+  const correctPin = process.env.SIGNIN_PIN;
+  const safeNext = nextUrl && nextUrl.startsWith('/signin') ? nextUrl : '/signin';
+  if (correctPin && pin === correctPin) {
+    res.cookie(SIGNIN_UNLOCK_COOKIE, correctPin, {
+      maxAge: 1000 * 60 * 60 * 24 * 180,
+      httpOnly: true,
+      sameSite: 'lax',
+    });
+    return res.redirect(safeNext);
+  }
+  res.render('signin-lock', { error: 'Incorrect PIN, try again.', next: safeNext });
+});
+
 // Visitor sign-in, step 1: pick your name.
 app.get('/signin', async (req, res, next) => {
   try {
@@ -495,7 +542,7 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
     const { rows: inserted } = await db.query(
       `INSERT INTO entries (agent_id, date, address, buyer_name, buyer_phone, buyer_email, interested, has_agent, buyer_agent_name, feedback)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-      [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null]
+      [agent.id, date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || null, hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null]
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
@@ -513,7 +560,7 @@ app.post('/agent/:slug/entries', async (req, res, next) => {
         buyerEmail,
         address: (address || '').trim(),
         feedback,
-        interested: interested || 'Maybe',
+        interested: interested || null,
       });
     }
     res.redirect(`/agent/${agent.slug}`);
@@ -533,7 +580,7 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
     await db.query(
       `UPDATE entries SET date = $1, address = $2, buyer_name = $3, buyer_phone = $4, buyer_email = $5,
        interested = $6, has_agent = $7, buyer_agent_name = $8, feedback = $9 WHERE id = $10 AND agent_id = $11`,
-      [date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || 'Maybe', hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null, req.params.id, agent.id]
+      [date, (address || '').trim(), buyerName, buyerPhone || null, buyerEmail || null, interested || null, hasAgentBool, hasAgentBool ? ((buyerAgentName || '').trim() || null) : null, feedback || null, req.params.id, agent.id]
     );
     if (address && address.trim()) {
       await db.query('INSERT INTO houses (address) VALUES ($1) ON CONFLICT (address) DO NOTHING', [address.trim()]);
@@ -548,7 +595,7 @@ app.post('/agent/:slug/entries/:id', async (req, res, next) => {
         buyerEmail,
         address: (address || '').trim(),
         feedback,
-        interested: interested || 'Maybe',
+        interested: interested || null,
       });
     }
     res.redirect(`/agent/${agent.slug}`);
