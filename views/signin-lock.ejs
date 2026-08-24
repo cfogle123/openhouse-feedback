@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visitor Sign-In | Open House Feedback</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <h1>Visitor Sign-In</h1>
+      <p class="subtitle">Enter the PIN to unlock this kiosk.</p>
+    </header>
+
+    <section class="card form-card" style="max-width: 360px;">
+      <% if (typeof error !== 'undefined' && error) { %>
+        <p class="form-error"><%= error %></p>
+      <% } %>
+      <form method="POST" action="/signin/unlock">
+        <input type="hidden" name="next" value="<%= typeof next !== 'undefined' ? next : '/signin' %>">
+        <div class="form-row">
+          <label class="full-width">
+            PIN
+            <input type="password" name="pin" inputmode="numeric" autofocus required>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Unlock</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</body>
+</html>
