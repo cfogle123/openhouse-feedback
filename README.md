@@ -81,3 +81,12 @@ Because Render's free plan sleeps the app when nothing's hitting it, this can't 
   4. Save and enable it.
 
 Resend and the cron ping are each independently optional -- whichever aren't configured are just skipped, same pattern as the Open House Update notifications above. The Slack bot token is shared with the Open House Update feature, so once it's set up once, both features can use it.
+
+## Visitor Sign-In kiosk PIN (optional but recommended)
+
+The Visitor Sign-In kiosk (`/signin`) is meant to be left sitting out on a phone or tablet at an open house, so anyone who walks up to it -- or just types the URL -- could otherwise use it. Setting `SIGNIN_PIN` puts a simple PIN screen in front of the whole flow.
+
+- `SIGNIN_PIN` -- any PIN or short password you pick (not something that comes from another service, you're just inventing a shared code). Share it only with whoever should be able to run the kiosk.
+- Until `SIGNIN_PIN` is set in Render, the sign-in flow is locked for everyone (including you) -- there's no PIN to match yet. Set it before you need to use the kiosk.
+- Once someone enters the correct PIN on a device, that device stays unlocked for 6 months (via a cookie), so it doesn't need re-entering every open house.
+- To change the PIN later, just update `SIGNIN_PIN` in Render -- anyone still using the old PIN's cookie will be prompted again next time.
