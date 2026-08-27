@@ -217,6 +217,7 @@ h1, h2, h3, .btn-primary, .btn-secondary, .agent-name, .house-card-address {
   font-weight: 400;
 }
 .radio-group input { width: auto; }
+.avail-choice { margin-bottom: 0; white-space: nowrap; gap: 14px !important; }
 
 .autocomplete-wrap { position: relative; }
 
