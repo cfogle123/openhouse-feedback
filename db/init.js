@@ -29,7 +29,7 @@ function slugify(name) {
 // blocks that public API path entirely (default-deny) while leaving this
 // app unaffected, since it connects with the database owner role from
 // DATABASE_URL, which always bypasses RLS regardless of policies.
-const RLS_TABLES = ['agents', 'houses', 'entries', 'availability', 'availability_day_notes', 'open_house_schedule'];
+const RLS_TABLES = ['agents', 'houses', 'entries', 'availability', 'availability_day_notes', 'open_house_schedule', 'open_house_updates', 'sign_plans'];
 
 // Applies schema.sql (safe to run repeatedly, everything uses IF NOT EXISTS)
 // and makes sure the 10 agents exist. Called automatically on every server
