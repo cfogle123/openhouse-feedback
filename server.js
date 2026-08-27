@@ -831,9 +831,15 @@ app.post('/agent/:slug/availability', async (req, res, next) => {
     const dates = getRemainingWeekendDates();
     for (const d of dates) {
       const key = toDateKey(d);
-      const checked = req.body[`available_${key}`] === 'on';
+      // Now two explicit radio choices ("Can work" / "Cannot work") instead
+      // of a single ambiguous checkbox, so a day that's never been answered
+      // at all (neither radio picked, no comment either) is skipped entirely
+      // rather than being forced into "Unavailable" -- it stays showing as
+      // unset (the admin grid's "—") until the agent actually picks one.
+      const raw = req.body[`available_${key}`]; // 'yes' | 'no' | undefined
       const comment = (req.body[`comment_${key}`] || '').trim();
-      const status = checked ? 'Available' : 'Unavailable';
+      if (!raw && !comment) continue;
+      const status = raw === 'yes' ? 'Available' : raw === 'no' ? 'Unavailable' : 'Unset';
       await db.query(
         `INSERT INTO availability (agent_id, date, status, comment, updated_at)
          VALUES ($1, $2, $3, $4, now())
