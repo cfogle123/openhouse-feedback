@@ -90,3 +90,15 @@ The Visitor Sign-In kiosk (`/signin`) is meant to be left sitting out on a phone
 - Until `SIGNIN_PIN` is set in Render, the sign-in flow is locked for everyone (including you) -- there's no PIN to match yet. Set it before you need to use the kiosk.
 - Once someone enters the correct PIN on a device, that device stays unlocked for 6 months (via a cookie), so it doesn't need re-entering every open house.
 - To change the PIN later, just update `SIGNIN_PIN` in Render -- anyone still using the old PIN's cookie will be prompted again next time.
+
+## Scan Feedback Form (optional)
+
+On the agent entry page, the "Scan Feedback Form" button next to Add Entry lets an agent take a photo of a paper feedback form and have it read automatically into the Log New Entry fields (buyer name, phone, email, interested, agent info, notes) for review before saving -- nothing is saved straight from the photo, it just pre-fills the normal form.
+
+This reads the photo using Anthropic's API (Claude), since that's the best fit for reading handwriting off a photo.
+
+1. Go to [console.anthropic.com](https://console.anthropic.com), create an account if you don't have one, and generate an API key.
+2. In Render, add environment variable `ANTHROPIC_API_KEY` with that key.
+3. That's it -- the button appears automatically once the key is set. Without it, clicking the button shows a message asking to set it up, rather than failing silently.
+
+Each scan costs a small amount (a fraction of a cent to a few cents depending on photo size) billed to your Anthropic account -- there's no separate subscription, just pay-as-you-go for what you actually scan.

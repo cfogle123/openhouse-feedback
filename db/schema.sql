@@ -129,3 +129,14 @@ CREATE TABLE IF NOT EXISTS sign_plans (
   uploaded_by TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT now()
 );
+
+-- "Maybe" was removed as a choice everywhere (the manual entry form only
+-- offers Yes/No now). Visitor self sign-ins never ask an interest question
+-- at all, though, so instead of inventing a new fake default, entries.interested
+-- is now left NULL for those until an agent reviews and sets it -- shown as
+-- "Not set" in admin/agent tables (see the badge rendering in agent.ejs,
+-- admin.ejs, admin-feedback.ejs, house-detail.ejs). Existing rows already
+-- saved as 'Maybe' are left alone; this only changes what happens going
+-- forward.
+ALTER TABLE entries ALTER COLUMN interested DROP DEFAULT;
+ALTER TABLE entries ALTER COLUMN interested DROP NOT NULL;

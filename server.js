@@ -8,6 +8,7 @@ const { migrate } = require('./db/init');
 const { sendOpenHouseLead } = require('./lib/followUpBoss');
 const { sendOpenHouseUpdateEmail, sendOpenHouseUpdateSlack, isEmailConfigured, isSlackBotConfigured } = require('./lib/notifications');
 const { runDueReminders } = require('./lib/reminders');
+const { isFormScannerConfigured, scanFeedbackForm } = require('./lib/formScanner');
 
 const app = express();
 
@@ -36,6 +37,16 @@ const signPlanUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => cb(null, SIGN_PLAN_MIME_TYPES.has(file.mimetype)),
+});
+
+// Photos of paper feedback forms, for the "Scan Feedback Form" button on
+// the agent entry page. Same memoryStorage approach as the other uploads --
+// the image is only ever held in memory long enough to send to the vision
+// API, never written to disk or stored anywhere.
+const feedbackScanUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
 });
 
 app.set('view engine', 'ejs');
@@ -529,6 +540,26 @@ app.get('/agent/:slug/entries/:id/edit', async (req, res, next) => {
       editEntry,
     });
   } catch (err) { next(err); }
+});
+
+// Reads a photo of a paper feedback form and returns extracted fields as
+// JSON for the browser to pre-fill into the "Log New Entry" form -- this
+// route never writes to the database itself, it just hands back data for
+// the agent to review before the normal Add Entry submit does that.
+app.post('/agent/:slug/entries/scan', feedbackScanUpload.single('photo'), async (req, res) => {
+  try {
+    if (!isFormScannerConfigured()) {
+      return res.status(400).json({ error: 'Form scanning isn\'t set up yet. Ask an admin to add ANTHROPIC_API_KEY in Render.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo received.' });
+    }
+    const fields = await scanFeedbackForm(req.file.buffer, req.file.mimetype);
+    res.json({ fields });
+  } catch (err) {
+    console.error('Form scan failed:', err);
+    res.status(500).json({ error: 'Could not read that photo. Please try again or enter the details manually.' });
+  }
 });
 
 // Create entry

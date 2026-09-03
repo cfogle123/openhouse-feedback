@@ -432,6 +432,7 @@ th {
 .badge-yes { background: #e6f4ea; color: var(--yes); }
 .badge-no { background: #fbe9e7; color: var(--no); }
 .badge-maybe { background: #fdf3d9; color: var(--maybe); }
+.badge-unset { background: #eef0f3; color: var(--muted); }
 
 .row-actions { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
 .row-actions a { color: var(--brand-light); font-size: 13px; text-decoration: none; }
@@ -449,6 +450,10 @@ th {
 .link-btn:hover { text-decoration: underline; }
 
 .empty-state { color: var(--muted); font-style: italic; }
+.form-error { color: var(--no); font-size: 14px; margin: -4px 0 12px; }
+.scan-status { font-size: 14px; margin-top: 10px; }
+.scan-status.scan-success { color: var(--yes); }
+.scan-status.scan-error { color: var(--no); }
 
 .option-grid {
   display: grid;

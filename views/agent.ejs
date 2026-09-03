@@ -76,8 +76,12 @@
           <button type="submit" class="btn-primary"><%= editEntry ? 'Save Changes' : 'Add Entry' %></button>
           <% if (editEntry) { %>
             <a class="btn-secondary" href="/agent/<%= agent.slug %>">Cancel</a>
+          <% } else { %>
+            <button type="button" class="btn-secondary" id="scanFormBtn">Scan Feedback Form</button>
+            <input type="file" id="scanFormInput" accept="image/*" capture="environment" style="display:none;">
           <% } %>
         </div>
+        <p id="scanStatus" class="scan-status" style="display:none;"></p>
       </form>
     </section>
 
@@ -109,7 +113,7 @@
                       <td><%= e.buyerName %></td>
                       <td class="muted"><%= e.buyerPhone || '' %><% if (e.buyerPhone && e.buyerEmail) { %><br><% } %><%= e.buyerEmail || '' %></td>
                       <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
-                      <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
+                      <td><% if (e.interested) { %><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span><% } else { %><span class="badge badge-unset">Not set</span><% } %></td>
                       <td class="feedback-cell"><%= e.feedback || '' %></td>
                       <td class="row-actions">
                         <a href="/agent/<%= agent.slug %>/entries/<%= e.id %>/edit">Edit</a>
@@ -148,6 +152,71 @@
       document.getElementById('addressSuggestions'),
       { addresses: <%- JSON.stringify(houses.map(function (h) { return h.address; })) %> }
     );
+
+    // Scan Feedback Form: lets an agent snap a photo of a paper form
+    // instead of retyping it. The photo is sent to the server, which reads
+    // it via Claude's vision API and returns extracted fields -- those just
+    // pre-fill this same form so the agent still reviews everything before
+    // hitting Add Entry, nothing is saved automatically from the photo.
+    (function () {
+      var btn = document.getElementById('scanFormBtn');
+      var input = document.getElementById('scanFormInput');
+      var status = document.getElementById('scanStatus');
+      if (!btn || !input || !status) return;
+
+      btn.addEventListener('click', function () { input.click(); });
+
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+
+        status.style.display = '';
+        status.className = 'scan-status';
+        status.textContent = 'Reading photo\u2026 this can take a few seconds.';
+        btn.disabled = true;
+
+        var formData = new FormData();
+        formData.append('photo', file);
+
+        fetch('/agent/<%= agent.slug %>/entries/scan', { method: 'POST', body: formData })
+          .then(function (res) {
+            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+          })
+          .then(function (result) {
+            btn.disabled = false;
+            if (!result.ok) {
+              status.className = 'scan-status scan-error';
+              status.textContent = result.data && result.data.error ? result.data.error : 'Could not read that photo.';
+              return;
+            }
+            var f = result.data.fields;
+            if (f.address) document.getElementById('addressInput').value = f.address;
+            document.querySelector('input[name="buyerName"]').value = f.buyerName || '';
+            document.querySelector('input[name="buyerPhone"]').value = f.buyerPhone || '';
+            document.querySelector('input[name="buyerEmail"]').value = f.buyerEmail || '';
+            if (f.interested) document.querySelector('select[name="interested"]').value = f.interested;
+            var hasAgentCb = document.getElementById('hasAgent');
+            if (hasAgentCb) {
+              hasAgentCb.checked = Boolean(f.hasAgent);
+              hasAgentCb.dispatchEvent(new Event('change'));
+            }
+            if (f.hasAgent && f.buyerAgentName) document.getElementById('buyerAgentName').value = f.buyerAgentName;
+            document.querySelector('textarea[name="feedback"]').value = f.feedback || '';
+
+            status.className = 'scan-status scan-success';
+            status.textContent = 'Filled in from the photo \u2014 please review before saving.';
+          })
+          .catch(function () {
+            btn.disabled = false;
+            status.className = 'scan-status scan-error';
+            status.textContent = 'Something went wrong reading that photo. Please try again.';
+          });
+
+        // Allow re-selecting the same file again later (change event won't
+        // fire a second time otherwise if the exact same file is chosen).
+        input.value = '';
+      });
+    })();
   </script>
 
 </body>

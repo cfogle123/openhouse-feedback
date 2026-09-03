@@ -46,7 +46,7 @@
                     <td><%= e.buyerName %><% if (e.source === 'visitor') { %> <span class="tag-self" title="Visitor signed themselves in at the open house">Self sign-in</span><% } %></td>
                     <td><%= e.agentName %></td>
                     <td><%= e.hasAgent ? (e.buyerAgentName || 'Yes') : 'No' %></td>
-                    <td><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span></td>
+                    <td><% if (e.interested) { %><span class="badge badge-<%= e.interested.toLowerCase() %>"><%= e.interested %></span><% } else { %><span class="badge badge-unset">Not set</span><% } %></td>
                     <td class="feedback-cell"><%= e.feedback || '' %></td>
                     <td>
                       <% if (e.hasAgent) { %>
