@@ -6,9 +6,21 @@
   <title>Availability | Open House Feedback</title>
   <%- include('partials-head') %>
   <style>
+    /* Widen this page only so the availability grid has room to lay out
+       every agent column at full width instead of being squeezed into the
+       site's normal 1000px content column. */
+    .wrap { max-width: 1600px; }
+    /* Let the table size itself to its natural (content-driven) width
+       instead of being forced to exactly fill the container. Combined with
+       .table-scroll's overflow-x: auto, this means: on a wide enough
+       screen everything just fits; on a narrower screen/window the table
+       scrolls sideways instead of squishing every column unreadably. */
+    table { width: auto; min-width: 100%; }
+    th, td { padding: 8px 6px; }
     .avail-cell { white-space: nowrap; }
-    .avail-comment { display: block; font-size: 11px; color: var(--muted); white-space: normal; max-width: 140px; }
-    .assignment-input { width: 160px; }
+    .avail-cell .badge { padding: 2px 8px; font-size: 11px; }
+    .avail-comment { display: block; font-size: 11px; color: var(--muted); white-space: normal; max-width: 140px; margin-top: 2px; }
+    .assignment-input { width: 150px; }
   </style>
 </head>
 <body>
