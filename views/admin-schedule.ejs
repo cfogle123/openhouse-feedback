@@ -33,7 +33,7 @@
       </section>
     <% } else { %>
       <section class="card">
-        <form method="POST" action="/admin/schedule">
+        <form method="POST" action="/admin/schedule" id="scheduleForm">
           <% slots.forEach(function(s) { %>
             <div class="schedule-row">
               <div>
@@ -70,10 +70,28 @@
           <% }); %>
           <div class="form-actions">
             <button type="submit" class="btn-primary">Save Schedule</button>
+            <button type="button" class="btn-secondary" id="clearScheduleBtn">Clear</button>
           </div>
         </form>
       </section>
     <% } %>
   </div>
+  <script>
+    // Blanks every House/Date/Hours/Agent field on the page. This only
+    // changes what's shown in the form -- nothing is actually removed from
+    // the schedule until "Save Schedule" is clicked afterward, so a
+    // confirmation here is just about not losing your current on-screen
+    // edits by mistake, not about deleting anything yet.
+    (function () {
+      var btn = document.getElementById('clearScheduleBtn');
+      var form = document.getElementById('scheduleForm');
+      if (!btn || !form) return;
+      btn.addEventListener('click', function () {
+        if (!confirm('Clear every field on this page? This won\'t change the saved schedule unless you click Save Schedule afterward.')) return;
+        form.querySelectorAll('select').forEach(function (sel) { sel.value = ''; });
+        form.querySelectorAll('input[type="date"]').forEach(function (inp) { inp.value = ''; });
+      });
+    })();
+  </script>
 </body>
 </html>
