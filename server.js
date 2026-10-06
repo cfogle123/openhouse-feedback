@@ -986,7 +986,7 @@ app.get('/admin/schedule', async (req, res, next) => {
     const { rows } = await db.query('SELECT * FROM open_house_schedule ORDER BY slot ASC');
     const bySlot = new Map(rows.map((r) => [r.slot, r]));
     const slots = [];
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const rec = bySlot.get(i);
       slots.push({
         slot: i,
@@ -1002,7 +1002,7 @@ app.get('/admin/schedule', async (req, res, next) => {
 
 app.post('/admin/schedule', async (req, res, next) => {
   try {
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       const houseAddress = (req.body[`house_${i}`] || '').trim();
       const date = req.body[`date_${i}`] || null;
       const hours = (req.body[`hours_${i}`] || '').trim();
