@@ -269,23 +269,28 @@ app.get('/upcoming', async (req, res, next) => {
        FROM open_house_schedule s
        LEFT JOIN agents a ON a.id = s.agent_id
        WHERE s.house_address IS NOT NULL AND s.house_address != ''
-         AND s.date IS NOT NULL AND s.date >= $1::date
-       ORDER BY s.date ASC, s.hours ASC, s.slot ASC`,
+         AND (s.date IS NULL OR s.date >= $1::date)
+       ORDER BY s.date ASC NULLS LAST, s.hours ASC, s.slot ASC`,
       [todayKey]
     );
     const byDay = new Map();
     for (const r of rows) {
-      const key = formatDateInput(r.date);
+      const key = r.date ? formatDateInput(r.date) : 'tbd';
       if (!byDay.has(key)) {
-        const [y, m, d] = key.split('-').map(Number);
-        const dt = new Date(Date.UTC(y, m - 1, d));
-        byDay.set(key, {
-          key,
-          weekday: dt.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
-          monthDay: dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
-          tag: key === todayKey ? 'Today' : (key === tomorrowKey ? 'Tomorrow' : null),
-          items: [],
-        });
+        if (key === 'tbd') {
+          // Houses saved on the schedule that don't have a date yet.
+          byDay.set(key, { key, weekday: 'Date not set yet', monthDay: '', tag: null, items: [] });
+        } else {
+          const [y, m, d] = key.split('-').map(Number);
+          const dt = new Date(Date.UTC(y, m - 1, d));
+          byDay.set(key, {
+            key,
+            weekday: dt.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
+            monthDay: dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
+            tag: key === todayKey ? 'Today' : (key === tomorrowKey ? 'Tomorrow' : null),
+            items: [],
+          });
+        }
       }
       byDay.get(key).items.push({
         address: r.house_address,
