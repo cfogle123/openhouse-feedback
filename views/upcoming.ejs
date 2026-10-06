@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upcoming Open Houses | The List Realty</title>
+  <%- include('partials-head') %>
+  <style>
+    .up-day { margin-bottom: 36px; }
+    .up-day-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .up-day-head h2 { margin: 0; font-size: 22px; color: var(--brand); }
+    .up-day-head .up-date { color: var(--muted); font-size: 16px; }
+    .up-tag { background: var(--brand-light); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .03em; text-transform: uppercase; }
+    .up-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .up-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(9, 42, 73, .06); display: flex; flex-direction: column; }
+    .up-photo { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; background: var(--bg); }
+    .up-photo-empty { width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center; background: linear-gradient(155deg, var(--brand-light), var(--brand)); color: rgba(255,255,255,.85); }
+    .up-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .up-address { font-size: 17px; font-weight: 700; color: var(--brand); line-height: 1.25; }
+    .up-hours { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); background: #eaf1f7; border-radius: 999px; padding: 4px 12px; align-self: flex-start; }
+    .up-agent { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+    .up-agent strong { color: var(--text); }
+    .up-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; }
+    .up-avatar-initial { width: 30px; height: 30px; border-radius: 50%; background: var(--brand-light); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex: none; }
+  </style>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <a class="back-link" href="/">&larr; Home</a>
+      <h1>Upcoming Open Houses</h1>
+      <p class="subtitle">What's coming up on the schedule.</p>
+    </header>
+
+    <% if (total === 0) { %>
+      <section class="card">
+        <p class="empty-state">No upcoming open houses are scheduled right now.</p>
+      </section>
+    <% } else { %>
+      <% days.forEach(function(day) { %>
+        <section class="up-day">
+          <div class="up-day-head">
+            <h2><%= day.weekday %></h2>
+            <span class="up-date"><%= day.monthDay %></span>
+            <% if (day.tag) { %><span class="up-tag"><%= day.tag %></span><% } %>
+          </div>
+          <div class="up-grid">
+            <% day.items.forEach(function(item) { %>
+              <div class="up-card">
+                <% if (item.housePhotoUrl) { %>
+                  <img class="up-photo" src="<%= item.housePhotoUrl %>" alt="<%= item.address %>">
+                <% } else { %>
+                  <div class="up-photo-empty">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                <% } %>
+                <div class="up-body">
+                  <div class="up-address"><%= item.address %></div>
+                  <% if (item.hours) { %>
+                    <div class="up-hours">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <%= item.hours %>
+                    </div>
+                  <% } %>
+                  <div class="up-agent">
+                    <% if (item.agentName) { %>
+                      <% if (item.agentPhotoUrl) { %>
+                        <img class="up-avatar" src="<%= item.agentPhotoUrl %>" alt="<%= item.agentName %>">
+                      <% } else { %>
+                        <div class="up-avatar-initial"><%= item.agentName.charAt(0) %></div>
+                      <% } %>
+                      <span>Hosted by <strong><%= item.agentName %></strong></span>
+                    <% } else { %>
+                      <span>Host not assigned yet</span>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </section>
+      <% }); %>
+    <% } %>
+  </div>
+</body>
+</html>
