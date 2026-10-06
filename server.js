@@ -255,6 +255,50 @@ app.get('/', (req, res) => {
   res.render('home');
 });
 
+// Upcoming open houses: a read-only, visual view of whatever is saved on the
+// admin Open House Schedule page, from today forward (past dates drop off
+// automatically). "Today" is figured in Eastern time since the schedule's
+// hours are all labelled EST.
+app.get('/upcoming', async (req, res, next) => {
+  try {
+    const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const [ty, tm, td] = todayKey.split('-').map(Number);
+    const tomorrowKey = new Date(Date.UTC(ty, tm - 1, td + 1)).toISOString().slice(0, 10);
+    const { rows } = await db.query(
+      `SELECT s.slot, s.house_address, s.date, s.hours, a.name AS agent_name, a.slug AS agent_slug
+       FROM open_house_schedule s
+       LEFT JOIN agents a ON a.id = s.agent_id
+       WHERE s.house_address IS NOT NULL AND s.house_address != ''
+         AND s.date IS NOT NULL AND s.date >= $1::date
+       ORDER BY s.date ASC, s.hours ASC, s.slot ASC`,
+      [todayKey]
+    );
+    const byDay = new Map();
+    for (const r of rows) {
+      const key = formatDateInput(r.date);
+      if (!byDay.has(key)) {
+        const [y, m, d] = key.split('-').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        byDay.set(key, {
+          key,
+          weekday: dt.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
+          monthDay: dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
+          tag: key === todayKey ? 'Today' : (key === tomorrowKey ? 'Tomorrow' : null),
+          items: [],
+        });
+      }
+      byDay.get(key).items.push({
+        address: r.house_address,
+        hours: r.hours || '',
+        agentName: r.agent_name || '',
+        agentPhotoUrl: r.agent_slug ? getAgentPhotoUrl(r.agent_slug) : null,
+        housePhotoUrl: await getHousePhotoUrl(r.house_address),
+      });
+    }
+    res.render('upcoming', { days: Array.from(byDay.values()), total: rows.length });
+  } catch (err) { next(err); }
+});
+
 // Feedback: pick your name
 app.get('/feedback', async (req, res, next) => {
   try {
