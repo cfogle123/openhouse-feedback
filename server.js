@@ -54,6 +54,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Google sign-in (only active once GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and
+// SESSION_SECRET are set in Render). Static files above stay public.
+const googleAuth = require('./lib/googleAuth');
+googleAuth.register(app);
+app.use(googleAuth.requireLogin);
+
 const INTEREST_OPTIONS = ['Yes', 'No'];
 
 function formatDateInput(d) {
