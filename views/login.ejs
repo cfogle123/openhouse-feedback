@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in | The List Realty</title>
+  <%- include('partials-head') %>
+</head>
+<body>
+  <%- include('partials-topbar') %>
+  <div class="wrap">
+    <header class="page-header">
+      <h1>Sign in</h1>
+      <p class="subtitle">Use your @thelistrealty.com Google account.</p>
+    </header>
+    <section class="card form-card" style="max-width: 360px;">
+      <% if (error) { %><p class="form-error"><%= error %></p><% } %>
+      <a class="btn-primary" style="display:block;text-align:center;text-decoration:none;" href="/auth/google?next=<%= encodeURIComponent(next) %>">Sign in with Google</a>
+    </section>
+  </div>
+</body>
+</html>
