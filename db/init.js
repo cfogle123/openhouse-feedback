@@ -14,6 +14,7 @@ const AGENTS = [
   { name: 'Jason', email: 'jason@thelistrealty.com' },
   { name: 'Felicia', email: 'felicia@thelistrealty.com' },
   { name: 'Francisco', email: 'francisco@thelistrealty.com' },
+  { name: 'Kim Burns', email: 'kimburns@thelistrealty.com' },
 ];
 
 function slugify(name) {
