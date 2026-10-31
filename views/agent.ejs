@@ -24,10 +24,16 @@
             Date
             <input type="date" name="date" value="<%= editEntry ? editEntry.dateInput : today %>" required>
           </label>
-          <label class="autocomplete-wrap">
+          <label>
             Open House Address
-            <input type="text" name="address" id="addressInput" placeholder="123 Main St" value="<%= editEntry ? editEntry.address : '' %>" autocomplete="off" required>
-            <ul id="addressSuggestions" class="suggestion-list" hidden></ul>
+            <select name="address" id="addressInput" required>
+              <option value="">&mdash; Select a house &mdash;</option>
+              <% var addrList = houses.map(function (h) { return h.address; });
+                 if (editEntry && editEntry.address && addrList.indexOf(editEntry.address) === -1) { addrList.unshift(editEntry.address); }
+                 addrList.forEach(function (addr) { %>
+                <option value="<%= addr %>" <%= editEntry && editEntry.address === addr ? 'selected' : '' %>><%= addr %></option>
+              <% }); %>
+            </select>
           </label>
         </div>
         <div class="form-row">
@@ -131,8 +137,6 @@
       <% } %>
     </section>
   </div>
-
-  <script src="/js/address-autocomplete.js"></script>
   <script>
     (function () {
       var cb = document.getElementById('hasAgent');
@@ -144,14 +148,6 @@
         if (!cb.checked && nameInput) nameInput.value = '';
       });
     })();
-
-    // House address autocomplete. See public/js/address-autocomplete.js for
-    // why this is a custom widget instead of native <input list>/<datalist>.
-    initAddressAutocomplete(
-      document.getElementById('addressInput'),
-      document.getElementById('addressSuggestions'),
-      { addresses: <%- JSON.stringify(houses.map(function (h) { return h.address; })) %> }
-    );
 
     // Scan Feedback Form: lets an agent snap a photo of a paper form
     // instead of retyping it. The photo is sent to the server, which reads
