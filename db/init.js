@@ -14,7 +14,7 @@ const AGENTS = [
   { name: 'Jason', email: 'jason@thelistrealty.com' },
   { name: 'Felicia', email: 'felicia@thelistrealty.com' },
   { name: 'Francisco', email: 'francisco@thelistrealty.com' },
-  { name: 'Kim Burns', email: 'kimburns@thelistrealty.com' },
+  { name: 'Lisa', email: 'lisa@thelistrealty.com' },
   { name: 'Gosha Bawiec', email: 'gosha@thelistrealty.com' },
 ];
 
@@ -39,6 +39,13 @@ const RLS_TABLES = ['agents', 'houses', 'entries', 'availability', 'availability
 async function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   await db.query(schema);
+
+  // Remove Kim Burns (no longer with the app). Only deletes if she has no
+  // entries logged, so no one's data can be lost by accident.
+  await db.query(
+    `DELETE FROM agents WHERE slug = 'kim-burns'
+       AND NOT EXISTS (SELECT 1 FROM entries WHERE entries.agent_id = agents.id)`
+  );
 
   for (const a of AGENTS) {
     await db.query(
